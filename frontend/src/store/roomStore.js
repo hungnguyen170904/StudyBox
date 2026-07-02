@@ -6,10 +6,11 @@ export const useRoomStore = create((set, get) => ({
   currentRoom: null,
   isLoading: false,
 
-  fetchRooms: async () => {
+  fetchRooms: async (search = '') => {
     set({ isLoading: true });
     try {
-      const data = await fetchApi('/rooms');
+      const url = search ? `/rooms?search=${encodeURIComponent(search)}` : '/rooms';
+      const data = await fetchApi(url);
       set({ rooms: data.rooms, isLoading: false });
     } catch (error) {
       console.error(error);
@@ -125,6 +126,74 @@ export const useRoomStore = create((set, get) => ({
       return true;
     } catch (error) {
       console.error('Lỗi khi đổi role:', error);
+      return false;
+    }
+  },
+
+  updateRoomSettings: async (roomId, data) => {
+    try {
+      const res = await fetchApi(`/rooms/${roomId}/settings`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+      set((state) => ({
+        currentRoom: state.currentRoom ? {
+          ...state.currentRoom,
+          room: { ...state.currentRoom.room, ...res.room }
+        } : null
+      }));
+      return true;
+    } catch (error) {
+      console.error('Lỗi khi cập nhật cài đặt:', error);
+      return false;
+    }
+  },
+
+  deleteRoom: async (roomId) => {
+    try {
+      await fetchApi(`/rooms/${roomId}`, { method: 'DELETE' });
+      set((state) => ({
+        currentRoom: null,
+        rooms: state.rooms.filter(r => r.id !== roomId)
+      }));
+      return true;
+    } catch (error) {
+      console.error('Lỗi khi xoá phòng:', error);
+      return false;
+    }
+  },
+
+  createChannel: async (roomId, name, type) => {
+    try {
+      const data = await fetchApi(`/rooms/${roomId}/channels`, {
+        method: 'POST',
+        body: JSON.stringify({ name, type })
+      });
+      set((state) => ({
+        currentRoom: {
+          ...state.currentRoom,
+          channels: [...state.currentRoom.channels, data.channel]
+        }
+      }));
+      return data.channel;
+    } catch (error) {
+      console.error('Lỗi tạo kênh:', error);
+      return null;
+    }
+  },
+
+  deleteChannel: async (roomId, channelId) => {
+    try {
+      await fetchApi(`/rooms/${roomId}/channels/${channelId}`, { method: 'DELETE' });
+      set((state) => ({
+        currentRoom: {
+          ...state.currentRoom,
+          channels: state.currentRoom.channels.filter(c => c.id !== channelId)
+        }
+      }));
+      return true;
+    } catch (error) {
+      console.error('Lỗi xoá kênh:', error);
       return false;
     }
   },

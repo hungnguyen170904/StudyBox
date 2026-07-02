@@ -1,15 +1,28 @@
 const db = require('../db');
 
-// Lấy danh sách room public
+// Lấy danh sách room public (Hỗ trợ search) và các phòng user đang tham gia
 const getRooms = async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT r.id, r.name, r.is_public, r.created_at, u.username as owner_name 
+    const { search } = req.query;
+    const userId = req.user.id;
+    
+    let query = `
+       SELECT DISTINCT r.id, r.name, r.is_public, r.created_at, u.username as owner_name 
        FROM rooms r 
        JOIN users u ON r.owner_id = u.id 
-       WHERE r.is_public = true 
-       ORDER BY r.created_at DESC`
-    );
+       LEFT JOIN room_members rm ON rm.room_id = r.id AND rm.user_id = $1
+       WHERE (r.is_public = true OR rm.user_id = $1)
+    `;
+    const params = [userId];
+
+    if (search) {
+      query += ` AND r.name ILIKE $2 `;
+      params.push(`%${search}%`);
+    }
+
+    query += ` ORDER BY r.created_at DESC`;
+
+    const result = await db.query(query, params);
     res.status(200).json({ rooms: result.rows });
   } catch (error) {
     console.error('Lỗi getRooms:', error);
@@ -43,13 +56,14 @@ const createRoom = async (req, res) => {
       [room.id, userId, 'owner']
     );
 
-    // 3. Tạo các channel mặc định (general-text, music, voice, whiteboard)
+    // 3. Tạo các channel mặc định (general-text, music, voice, whiteboard, document)
     await db.query(
       `INSERT INTO channels (room_id, name, type) VALUES 
        ($1, 'chung', 'text'::channel_type),
        ($1, 'nhạc', 'music'::channel_type),
        ($1, 'đàm thoại', 'voice'::channel_type),
-       ($1, 'bảng trắng', 'whiteboard'::channel_type)`,
+       ($1, 'bảng trắng', 'whiteboard'::channel_type),
+       ($1, 'tài liệu', 'document'::channel_type)`,
       [room.id]
     );
 
@@ -306,6 +320,123 @@ const leaveRoom = async (req, res) => {
   }
 };
 
+// Cài đặt phòng (Chỉ Owner)
+const updateRoomSettings = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, is_public } = req.body;
+    const userId = req.user.id;
+
+    // Kiểm tra quyền Owner
+    const roleCheck = await db.query(
+      'SELECT role FROM room_members WHERE room_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (roleCheck.rows.length === 0 || roleCheck.rows[0].role !== 'owner') {
+      return res.status(403).json({ message: 'Chỉ Chủ phòng mới có quyền thay đổi cài đặt' });
+    }
+
+    const updateRes = await db.query(
+      'UPDATE rooms SET name = COALESCE($1, name), is_public = COALESCE($2, is_public) WHERE id = $3 RETURNING *',
+      [name, is_public, id]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy phòng' });
+    }
+
+    res.status(200).json({ message: 'Cập nhật cài đặt thành công', room: updateRes.rows[0] });
+  } catch (error) {
+    console.error('Lỗi updateRoomSettings:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// Xóa phòng (Chỉ Owner)
+const deleteRoom = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Kiểm tra quyền Owner
+    const roleCheck = await db.query(
+      'SELECT role FROM room_members WHERE room_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (roleCheck.rows.length === 0 || roleCheck.rows[0].role !== 'owner') {
+      return res.status(403).json({ message: 'Chỉ Chủ phòng mới có quyền xoá phòng' });
+    }
+
+    // Xoá phòng (Cascades tự động lo channels, members, documents)
+    await db.query('DELETE FROM rooms WHERE id = $1', [id]);
+
+    res.status(200).json({ message: 'Đã xoá phòng thành công' });
+  } catch (error) {
+    console.error('Lỗi deleteRoom:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// Tạo kênh mới trong phòng (Chỉ Owner/Admin)
+const createChannel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, type } = req.body;
+    const userId = req.user.id;
+
+    if (!name || !type) {
+      return res.status(400).json({ message: 'Thiếu tên hoặc loại kênh' });
+    }
+
+    // Kiểm tra quyền Owner/Admin
+    const roleCheck = await db.query(
+      'SELECT role FROM room_members WHERE room_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (roleCheck.rows.length === 0 || !['owner', 'admin'].includes(roleCheck.rows[0].role)) {
+      return res.status(403).json({ message: 'Chỉ Chủ phòng hoặc Quản trị viên mới được tạo kênh' });
+    }
+
+    const insertRes = await db.query(
+      'INSERT INTO channels (room_id, name, type) VALUES ($1, $2, $3::channel_type) RETURNING *',
+      [id, name, type]
+    );
+
+    res.status(201).json({ message: 'Tạo kênh thành công', channel: insertRes.rows[0] });
+  } catch (error) {
+    console.error('Lỗi createChannel:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// Xóa kênh trong phòng (Chỉ Owner/Admin)
+const deleteChannel = async (req, res) => {
+  try {
+    const { id, channelId } = req.params;
+    const userId = req.user.id;
+
+    // Kiểm tra quyền Owner/Admin
+    const roleCheck = await db.query(
+      'SELECT role FROM room_members WHERE room_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (roleCheck.rows.length === 0 || !['owner', 'admin'].includes(roleCheck.rows[0].role)) {
+      return res.status(403).json({ message: 'Chỉ Chủ phòng hoặc Quản trị viên mới được xoá kênh' });
+    }
+
+    await db.query('DELETE FROM channels WHERE id = $1 AND room_id = $2', [channelId, id]);
+
+    res.status(200).json({ message: 'Đã xoá kênh thành công' });
+  } catch (error) {
+    console.error('Lỗi deleteChannel:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
 module.exports = {
   getRooms,
   createRoom,
@@ -315,5 +446,9 @@ module.exports = {
   joinRoomByInvite,
   kickMember,
   changeMemberRole,
-  leaveRoom
+  leaveRoom,
+  updateRoomSettings,
+  deleteRoom,
+  createChannel,
+  deleteChannel
 };

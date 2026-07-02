@@ -2,14 +2,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoomStore } from '../store/roomStore';
 import { useChatStore } from '../store/chatStore';
-import { Hash, Volume2, Music, ArrowLeft, UserPlus, PenTool } from 'lucide-react';
+import { Hash, Volume2, Music, ArrowLeft, UserPlus, PenTool, FileText, Settings } from 'lucide-react';
 import MessageList from '../components/Chat/MessageList';
 import MessageInput from '../components/Chat/MessageInput';
 import MusicChannel from '../components/MusicPlayer/MusicChannel';
 import VoiceChannel from '../components/VoiceChannel/VoiceChannel';
 import RoomMembers from '../components/Room/RoomMembers';
 import InviteModal from '../components/Room/InviteModal';
+import RoomSettingsModal from '../components/Room/RoomSettingsModal';
+import CreateChannelModal from '../components/Room/CreateChannelModal';
 import Whiteboard from '../components/Whiteboard/Whiteboard';
+import DocumentChannel from '../components/DocumentChannel/DocumentChannel';
 import { useAuthStore } from '../store/authStore';
 
 export default function Room() {
@@ -21,6 +24,8 @@ export default function Room() {
   
   const [activeChannel, setActiveChannel] = useState(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
 
   useEffect(() => {
     fetchRoomDetails(id);
@@ -67,11 +72,24 @@ export default function Room() {
       case 'voice': return <Volume2 className="w-4 h-4" />;
       case 'music': return <Music className="w-4 h-4" />;
       case 'whiteboard': return <PenTool className="w-4 h-4" />;
+      case 'document': return <FileText className="w-4 h-4" />;
       default: return <Hash className="w-4 h-4" />;
     }
   };
 
-  const isOwner = currentRoom.members?.find(m => m.id === user?.id)?.role === 'owner';
+  const currentUserRole = currentRoom.members?.find(m => m.id === user?.id)?.role;
+  const isOwner = currentUserRole === 'owner';
+  const isAdminOrOwner = ['owner', 'admin'].includes(currentUserRole);
+
+  const handleDeleteChannel = async (channelId) => {
+    if (window.confirm('Bạn có chắc muốn xoá kênh này? Toàn bộ dữ liệu bên trong sẽ biến mất.')) {
+      const { deleteChannel } = useRoomStore.getState();
+      await deleteChannel(id, channelId);
+      if (activeChannel?.id === channelId) {
+        setActiveChannel(currentRoom.channels[0]); // Chuyển về kênh đầu tiên
+      }
+    }
+  };
 
   return (
     <div className="h-screen bg-transparent flex overflow-hidden">
@@ -85,22 +103,42 @@ export default function Room() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
-          <div className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-2 mt-2 drop-shadow-sm">
-            Kênh Text & Voice
+          <div className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-2 mt-2 drop-shadow-sm flex items-center justify-between">
+            KÊNH TRONG PHÒNG
+            {isAdminOrOwner && (
+              <button 
+                onClick={() => setIsCreateChannelOpen(true)}
+                className="hover:bg-white/10 p-1 rounded transition-colors text-white/50 hover:text-white"
+                title="Tạo kênh mới"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            )}
           </div>
           {currentRoom.channels.map(channel => (
-            <button
-              key={channel.id}
-              onClick={() => setActiveChannel(channel)}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-all text-sm font-medium ${
-                activeChannel?.id === channel.id 
-                  ? 'bg-white/20 text-white shadow-sm' 
-                  : 'text-white/70 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              {getChannelIcon(channel.type)}
-              {channel.name}
-            </button>
+            <div key={channel.id} className="group flex items-center w-full">
+              <button
+                onClick={() => setActiveChannel(channel)}
+                className={`flex-1 flex items-center gap-2 px-2 py-2 rounded-lg transition-all text-sm font-medium ${
+                  activeChannel?.id === channel.id 
+                    ? 'bg-white/20 text-white shadow-sm' 
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {getChannelIcon(channel.type)}
+                <span className="truncate">{channel.name}</span>
+              </button>
+              
+              {isAdminOrOwner && currentRoom.channels.length > 1 && (
+                <button
+                  onClick={() => handleDeleteChannel(channel.id)}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 ml-1 text-white/50 hover:text-red-400 hover:bg-white/10 rounded transition-all shrink-0"
+                  title="Xoá kênh"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg>
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -118,16 +156,28 @@ export default function Room() {
             ) : 'Đang chọn kênh...'}
           </h2>
 
-          {/* Icon Mời bạn bè */}
-          {isOwner && (
-            <button 
-              onClick={() => setIsInviteOpen(true)}
-              className="flex items-center gap-2 text-sm font-bold text-white/70 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-all"
-            >
-              <UserPlus className="w-4 h-4" />
-              Mời
-            </button>
-          )}
+          {/* Các nút hành động (Mời & Cài đặt) */}
+          <div className="flex items-center gap-2">
+            {isOwner && (
+              <>
+                <button 
+                  onClick={() => setIsInviteOpen(true)}
+                  className="flex items-center gap-2 text-sm font-bold text-white/70 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-all"
+                  title="Mời bạn bè"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Mời
+                </button>
+                <button 
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="flex items-center gap-2 text-sm font-bold text-white/70 hover:text-white hover:bg-white/10 px-2 py-1.5 rounded-lg transition-all"
+                  title="Cài đặt phòng"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Cấu trúc Content + Sidebar Thành viên */}
@@ -146,6 +196,8 @@ export default function Room() {
               <VoiceChannel channelId={activeChannel.id} />
             ) : activeChannel?.type === 'whiteboard' ? (
               <Whiteboard channelId={activeChannel.id} />
+            ) : activeChannel?.type === 'document' ? (
+              <DocumentChannel channelId={activeChannel.id} roomId={id} />
             ) : (
               <div className="flex-1 flex items-center justify-center text-white/50">
                 Kênh này chưa được hỗ trợ.
@@ -159,11 +211,21 @@ export default function Room() {
         </div>
       </div>
 
-      {/* Modal Invite */}
+      {/* Modals */}
       <InviteModal 
         isOpen={isInviteOpen} 
         onClose={() => setIsInviteOpen(false)} 
         roomId={id} 
+      />
+      <RoomSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        roomId={id}
+      />
+      <CreateChannelModal
+        isOpen={isCreateChannelOpen}
+        onClose={() => setIsCreateChannelOpen(false)}
+        roomId={id}
       />
     </div>
   );

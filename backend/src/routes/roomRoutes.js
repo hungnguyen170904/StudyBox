@@ -16,4 +16,10 @@ router.delete('/:id/members/:userId', verifyToken, roomController.kickMember);
 router.put('/:id/members/:userId/role', verifyToken, roomController.changeMemberRole);
 router.delete('/:id/leave', verifyToken, roomController.leaveRoom);
 
+router.put('/:id/settings', verifyToken, roomController.updateRoomSettings);
+router.delete('/:id', verifyToken, roomController.deleteRoom);
+
+router.post('/:id/channels', verifyToken, roomController.createChannel);
+router.delete('/:id/channels/:channelId', verifyToken, roomController.deleteChannel);
+
 module.exports = router;

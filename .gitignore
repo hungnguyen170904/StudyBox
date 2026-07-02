@@ -25,3 +25,4 @@ yarn-error.log
 *.sln
 *.sw?
 phan-tich-thiet-ke-he-thong.md
+backend/uploads/

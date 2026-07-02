@@ -10,7 +10,7 @@ import DirectMessage from '../components/Friends/DirectMessage';
 import ProfileSettings from '../components/ProfileSettings';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 import { useNotificationStore } from '../store/notificationStore';
-import { Bell } from 'lucide-react';
+import { Bell, Search, Lock } from 'lucide-react';
 
 export default function Home() {
   const { user, logout } = useAuthStore();
@@ -26,11 +26,11 @@ export default function Home() {
   const [activeDmUser, setActiveDmUser] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { fetchNotifications, listenSocketEvents, unreadCount } = useNotificationStore();
 
   useEffect(() => {
-    fetchRooms();
     fetchFriends();
     initSocket();
     fetchNotifications();
@@ -43,7 +43,14 @@ export default function Home() {
     return () => {
       disconnectSocket();
     };
-  }, [fetchRooms, fetchFriends, initSocket, disconnectSocket, fetchNotifications, listenSocketEvents]);
+  }, [fetchFriends, initSocket, disconnectSocket, fetchNotifications, listenSocketEvents]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchRooms(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, fetchRooms]);
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -214,8 +221,18 @@ export default function Home() {
 
               <div className="w-full md:w-2/3">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-white drop-shadow-sm">Phòng cộng đồng</h2>
-                  <button onClick={fetchRooms} className="text-sm text-white/70 hover:text-white hover:underline font-medium transition-colors">Làm mới</button>
+                  <h2 className="text-lg font-bold text-white drop-shadow-sm flex-1">Phòng cộng đồng</h2>
+                  <div className="relative flex-1 max-w-xs mx-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
+                    <input 
+                      type="text"
+                      placeholder="Tìm kiếm phòng..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-white/10 border border-white/20 rounded-full py-1.5 pl-9 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors"
+                    />
+                  </div>
+                  <button onClick={() => fetchRooms(searchQuery)} className="text-sm text-white/70 hover:text-white hover:underline font-medium transition-colors shrink-0">Làm mới</button>
                 </div>
 
                 {isLoading ? (
@@ -228,9 +245,14 @@ export default function Home() {
                       <div 
                         key={room.id}
                         onClick={() => navigate(`/room/${room.id}`)}
-                        className="bg-black/20 hover:bg-black/40 backdrop-blur-sm border border-white/10 p-5 rounded-xl cursor-pointer transition-all group"
+                        className="bg-black/20 hover:bg-black/40 backdrop-blur-sm border border-white/10 p-5 rounded-xl cursor-pointer transition-all group flex flex-col relative"
                       >
-                        <h3 className="font-bold text-white mb-1 group-hover:text-blue-300 transition-colors">{room.name}</h3>
+                        {!room.is_public && (
+                          <div className="absolute top-3 right-3 text-white/40" title="Phòng riêng tư">
+                            <Lock className="w-4 h-4" />
+                          </div>
+                        )}
+                        <h3 className="font-bold text-white mb-1 group-hover:text-blue-300 transition-colors pr-6 truncate">{room.name}</h3>
                         <p className="text-sm text-white/60">Tạo bởi: {room.owner_name}</p>
                         <div className="mt-4 flex justify-between items-center text-xs font-semibold">
                           <span className="text-white/50">{new Date(room.created_at).toLocaleDateString('vi-VN')}</span>

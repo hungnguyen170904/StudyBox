@@ -2,16 +2,21 @@
 
 StudyBox is a comprehensive real-time web application designed for students and learners to collaborate, communicate, and study together effectively. It features a modern, beautiful **Glassmorphism** interface and is equipped with powerful real-time capabilities powered by WebRTC and Socket.io.
 
-## ✨ Features
+## ✨ Core Features
 
-- **Real-time Chat:** Instant messaging with typing indicators, read receipts, and image/video sharing.
-- **Voice & Video Channels:** High-quality WebRTC-powered voice rooms and screen sharing capabilities.
-- **Collaborative Whiteboard:** Draw and brainstorm together in real-time.
-- **Music Player:** Listen to focus-enhancing lo-fi music directly within the app, synchronized across your study sessions.
-- **Friend System & Direct Messaging:** Connect with peers and message them privately.
-- **Real-time Notifications:** Get instantly notified when someone sends a friend request or accepts one.
-- **Role & Permission Management:** Room owners can assign Admins, and Admins can moderate the room by kicking disruptive users.
-- **Stunning UI/UX:** Built with React, Tailwind CSS, and Zustand featuring a state-of-the-art Glassmorphism design system.
+- 💬 **Real-time Chat:** Instant messaging with typing indicators, read receipts, and image/video sharing.
+- 🎧 **Voice & Video Channels:** High-quality WebRTC-powered voice rooms and screen sharing capabilities.
+- 🎨 **Collaborative Whiteboard:** Draw, brainstorm, and take notes together in real-time.
+- 🎵 **Music Player:** Listen to focus-enhancing lo-fi music directly within the app, synchronized across your study sessions.
+- 📁 **Document Channel (Drive):** Upload, share, and manage study materials (PDFs, Docs, Images) with drag-and-drop support.
+- 🎛️ **Advanced Room Management:** 
+  - Sub-channel creation and deletion (similar to Discord).
+  - Privacy controls (Hide rooms from the public explore page).
+  - Full room deletion and robust invite-code system.
+- 🤝 **Friend System & Direct Messaging:** Connect with peers, see online status, and message them privately.
+- 🔔 **Real-time Notifications:** Get instantly notified for friend requests, invites, and system updates.
+- 🛡️ **Role & Permission Management:** Room owners can assign Admins, manage roles, and moderate the room by kicking disruptive users.
+- 💎 **Stunning UI/UX:** Built with React, Tailwind CSS, and Zustand featuring a state-of-the-art Glassmorphism design system.
 
 ## 🛠️ Technology Stack
 

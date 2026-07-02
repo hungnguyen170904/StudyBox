@@ -30,6 +30,7 @@ const chatRoutes = require('./src/routes/chatRoutes');
 const friendRoutes = require('./src/routes/friendRoutes');
 const dmRoutes = require('./src/routes/dmRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const documentRoutes = require('./src/routes/documentRoutes');
 
 // Định tuyến API
 app.use('/api/auth', authRoutes);
@@ -38,6 +39,7 @@ app.use('/api/channels', chatRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/dm', dmRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/documents', documentRoutes);
 
 // Routes cơ bản
 app.get('/', (req, res) => {

@@ -3,11 +3,14 @@ const db = require('../db');
 const redis = require('../redis');
 
 let ioInstance;
-const userSocketMap = new Map(); // Lưu trữ userId -> socketId
+const userSocketsMap = new Map(); // Lưu trữ userId -> Set(socketId)
 
 module.exports = {
   getIo: () => ioInstance,
-  getUserSocketId: (userId) => userSocketMap.get(userId),
+  getUserSocketId: (userId) => {
+    const sockets = userSocketsMap.get(userId);
+    return sockets && sockets.size > 0 ? Array.from(sockets)[0] : null;
+  },
   init: (io) => {
     ioInstance = io;
   // Middleware xác thực socket
@@ -28,8 +31,19 @@ module.exports = {
   io.on('connection', (socket) => {
     console.log(`User connected to socket: ${socket.user.username} (${socket.id})`);
     
-    // Lưu socketId của user
-    userSocketMap.set(socket.user.id, socket.id);
+    // Lưu socketId của user (hỗ trợ nhiều tab)
+    if (!userSocketsMap.has(socket.user.id)) {
+      userSocketsMap.set(socket.user.id, new Set());
+      // Phát thông báo user online cho TẤT CẢ mọi người nếu đây là tab đầu tiên
+      io.emit('user_status_change', { userId: socket.user.id, isOnline: true });
+    }
+    userSocketsMap.get(socket.user.id).add(socket.id);
+
+    // Cung cấp danh sách user đang online cho client mới kết nối
+    socket.on('get_online_users', () => {
+      const onlineUsers = Array.from(userSocketsMap.keys());
+      socket.emit('online_users_list', onlineUsers);
+    });
 
     // Tham gia vào một channel (room của socket.io)
     socket.on('join_channel', (channelId) => {
@@ -74,7 +88,20 @@ module.exports = {
 
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.user?.username}`);
-      userSocketMap.delete(socket.user.id);
+      
+      const userSockets = userSocketsMap.get(socket.user.id);
+      if (userSockets) {
+        userSockets.delete(socket.id);
+        if (userSockets.size === 0) {
+          userSocketsMap.delete(socket.user.id);
+          // Phát thông báo user offline khi đóng toàn bộ tab
+          io.emit('user_status_change', { userId: socket.user.id, isOnline: false });
+        }
+      }
+      
+      if (socket.voiceChannelId) {
+        io.to(`voice_${socket.voiceChannelId}`).emit('voice:user_left', { userId: socket.user.id });
+      }
     });
 
     // Hàm phụ trợ: Kiểm tra quyền Owner
@@ -400,12 +427,7 @@ module.exports = {
       }
     });
 
-    // Cần update lại sự kiện disconnect ở trên để xử lý leave voice (tôi sẽ chèn thêm logic vào event disconnect)
-    socket.on('disconnect', () => {
-      if (socket.voiceChannelId) {
-        io.to(`voice_${socket.voiceChannelId}`).emit('voice:user_left', { userId: socket.user.id });
-      }
-    });
+    // Đã gộp logic voice:leave vào sự kiện disconnect chung phía trên
 
     /* =========================================
        PHASE 8: DIRECT MESSAGES & FRIENDS
@@ -436,9 +458,11 @@ module.exports = {
         socket.emit('dm:receive', fullMessage);
 
         // Gửi cho người nhận nếu họ đang online
-        const toSocketId = userSocketMap.get(toUserId);
-        if (toSocketId) {
-          io.to(toSocketId).emit('dm:receive', fullMessage);
+        const toSockets = userSocketsMap.get(toUserId);
+        if (toSockets) {
+          toSockets.forEach(socketId => {
+            io.to(socketId).emit('dm:receive', fullMessage);
+          });
         }
       } catch (err) {
         console.error('Lỗi khi gửi DM:', err);

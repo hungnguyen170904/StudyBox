@@ -16,7 +16,7 @@ export default function Home() {
   const { user, logout } = useAuthStore();
   const { rooms, fetchRooms, createRoom, isLoading } = useRoomStore();
   const { friends, fetchFriends } = useFriendStore();
-  const { initSocket, disconnectSocket } = useChatStore();
+  const { onlineUsers } = useChatStore();
   
   const navigate = useNavigate();
   
@@ -32,18 +32,8 @@ export default function Home() {
 
   useEffect(() => {
     fetchFriends();
-    initSocket();
     fetchNotifications();
-
-    // Lắng nghe socket ngay sau khi khởi tạo
-    setTimeout(() => {
-      listenSocketEvents();
-    }, 500);
-
-    return () => {
-      disconnectSocket();
-    };
-  }, [fetchFriends, initSocket, disconnectSocket, fetchNotifications, listenSocketEvents]);
+  }, [fetchFriends, fetchNotifications]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -119,8 +109,10 @@ export default function Home() {
                   ) : (
                     <User className="w-5 h-5 text-textMuted" />
                   )}
-                  {/* Hiệu ứng online giả lập */}
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black/40"></div>
+                  {/* Hiệu ứng online thực tế qua socket */}
+                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-black/40 ${
+                    onlineUsers.includes(friend.id || friend.friendship_id) ? 'bg-green-500' : 'bg-gray-500'
+                  }`}></div>
                 </div>
                 <div className="flex flex-col truncate text-left w-full">
                   <span className="truncate text-sm">{friend.display_name || friend.username}</span>
@@ -145,7 +137,7 @@ export default function Home() {
               ) : (
                 <User className="w-5 h-5 text-white/70" />
               )}
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black/40"></div>
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black/40"></div>
             </div>
             <div className="flex flex-col truncate">
               <span className="text-sm font-bold text-white truncate">{user?.display_name || user?.username}</span>

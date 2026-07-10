@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useRoomStore } from '../../store/roomStore';
 import { useAuthStore } from '../../store/authStore';
+import { useChatStore } from '../../store/chatStore';
 import { Shield, User, Crown, UserMinus, LogOut, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function RoomMembers({ roomId }) {
   const { currentRoom, kickMember, changeMemberRole, leaveRoom } = useRoomStore();
   const { user: currentUser } = useAuthStore();
+  const { onlineUsers } = useChatStore();
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +61,10 @@ export default function RoomMembers({ roomId }) {
             ) : (
               <User className="w-5 h-5 text-white/70" />
             )}
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black/40"></div>
+            
+            <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-black/40 ${
+              onlineUsers.includes(member.id) ? 'bg-green-500' : 'bg-gray-500'
+            }`}></div>
           </div>
           <div className="flex flex-col overflow-hidden text-left">
             <span className="text-sm font-bold text-white truncate leading-tight drop-shadow-sm">

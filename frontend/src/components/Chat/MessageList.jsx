@@ -1,9 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '../../store/chatStore';
+import { useAuthStore } from '../../store/authStore';
+import { Smile } from 'lucide-react';
 
 export default function MessageList({ channelId }) {
-  const { messages, fetchMessages } = useChatStore();
+  const { messages, fetchMessages, loadMoreMessages, hasMoreMessages, isLoadingMore, toggleReaction } = useChatStore();
+  const { user } = useAuthStore();
   const messagesEndRef = useRef(null);
+  const containerRef = useRef(null);
+  const [hoveredMessageId, setHoveredMessageId] = useState(null);
+
+  const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
   useEffect(() => {
     if (channelId) {
@@ -12,16 +19,52 @@ export default function MessageList({ channelId }) {
   }, [channelId, fetchMessages]);
 
   useEffect(() => {
-    // Tự động cuộn xuống dưới cùng khi có tin nhắn mới
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Tự động cuộn xuống dưới cùng khi mới load hoặc có tin nhắn mới (ở dưới cùng)
+    // Để tránh cuộn khi đang xem tin cũ, có thể thêm logic phức tạp hơn
+    // Tạm thời chỉ cuộn khi scroll đang ở gần đáy
+    if (containerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      if (isNearBottom || messages.length <= 50) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   }, [messages]);
+
+  const handleScroll = () => {
+    if (containerRef.current) {
+      if (containerRef.current.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
+        // Lưu lại vị trí scroll để giữ nguyên view sau khi load thêm
+        const prevScrollHeight = containerRef.current.scrollHeight;
+        
+        loadMoreMessages(channelId).then(() => {
+          setTimeout(() => {
+            if (containerRef.current) {
+              const currentScrollHeight = containerRef.current.scrollHeight;
+              containerRef.current.scrollTop = currentScrollHeight - prevScrollHeight;
+            }
+          }, 0);
+        });
+      }
+    }
+  };
 
   // Nhóm các tin nhắn theo channelId để hiển thị đúng
   const channelMessages = messages.filter(m => m.channel_id === channelId);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-      {channelMessages.length === 0 ? (
+    <div 
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar relative"
+    >
+      {isLoadingMore && (
+        <div className="flex justify-center py-2 text-white/50">
+          <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+        </div>
+      )}
+      
+      {channelMessages.length === 0 && !isLoadingMore ? (
         <div className="h-full flex flex-col justify-center items-center text-white/50">
           <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4 shadow-sm border border-white/10">
             <span className="text-3xl drop-shadow-sm">👋</span>
@@ -35,7 +78,27 @@ export default function MessageList({ channelId }) {
             (new Date(msg.created_at).getTime() - new Date(channelMessages[index - 1].created_at).getTime() > 300000); // Cách 5 phút thì hiện lại tên
 
           return (
-            <div key={msg.id || index} className={`flex group ${showHeader ? 'mt-4' : 'mt-1'}`}>
+            <div 
+              key={msg.id || index} 
+              className={`flex group ${showHeader ? 'mt-4' : 'mt-1'} relative`}
+              onMouseEnter={() => setHoveredMessageId(msg.id)}
+              onMouseLeave={() => setHoveredMessageId(null)}
+            >
+              {/* Emoji Picker Menu */}
+              {hoveredMessageId === msg.id && (
+                <div className="absolute right-4 -top-4 bg-surfaceLight/90 backdrop-blur-md border border-white/10 p-1.5 rounded-xl shadow-lg flex gap-1 z-10 animate-fade-in">
+                  {EMOJIS.map(emoji => (
+                    <button 
+                      key={emoji}
+                      onClick={() => toggleReaction(msg.id, emoji)}
+                      className="hover:scale-125 hover:bg-white/10 p-1 rounded-lg transition-transform"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="flex-shrink-0 mr-4 w-10">
                 {showHeader ? (
                   <img 
@@ -60,9 +123,35 @@ export default function MessageList({ channelId }) {
                     </span>
                   </div>
                 )}
-                <div className="text-white/90 break-words leading-relaxed text-[15px]">
+                <div className="text-white/90 break-words leading-relaxed text-[15px] group-hover:bg-white/5 rounded-lg p-1 -ml-1 transition-colors inline-block w-fit max-w-[calc(100%-2rem)]">
                   {msg.content}
                 </div>
+                
+                {/* Hiển thị Reactions */}
+                {msg.reactions && msg.reactions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {/* Nhóm reactions theo emoji */}
+                    {Object.entries(msg.reactions.reduce((acc, r) => {
+                      acc[r.emoji] = acc[r.emoji] || [];
+                      acc[r.emoji].push(r.user_id);
+                      return acc;
+                    }, {})).map(([emoji, users]) => {
+                      const isMyReaction = users.includes(user?.id);
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() => toggleReaction(msg.id, emoji)}
+                          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-medium border transition-colors ${
+                            isMyReaction ? 'bg-blue-500/20 border-blue-500/30 text-blue-200' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                          }`}
+                        >
+                          <span>{emoji}</span>
+                          <span>{users.length}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           );

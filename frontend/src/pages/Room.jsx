@@ -19,7 +19,7 @@ export default function Room() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentRoom, fetchRoomDetails, clearCurrentRoom, isLoading } = useRoomStore();
-  const { initSocket, disconnectSocket, joinChannel, leaveChannel } = useChatStore();
+  const { joinChannel, leaveChannel } = useChatStore();
   const { user } = useAuthStore();
   
   const [activeChannel, setActiveChannel] = useState(null);
@@ -29,13 +29,11 @@ export default function Room() {
 
   useEffect(() => {
     fetchRoomDetails(id);
-    initSocket();
 
     return () => {
       clearCurrentRoom();
-      disconnectSocket();
     };
-  }, [id, fetchRoomDetails, initSocket, clearCurrentRoom, disconnectSocket]);
+  }, [id, fetchRoomDetails, clearCurrentRoom]);
 
   useEffect(() => {
     // Tự động chọn kênh text đầu tiên khi load xong phòng

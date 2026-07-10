@@ -7,13 +7,29 @@ import Home from './pages/Home';
 import Room from './pages/Room';
 import Invite from './pages/Invite';
 import PrivateRoute from './components/PrivateRoute';
+import { useChatStore } from './store/chatStore';
+import { useNotificationStore } from './store/notificationStore';
 
 function App() {
-  const checkAuth = useAuthStore((state) => state.checkAuth);
+  const { checkAuth, user, isAuthenticated } = useAuthStore();
+  const { initSocket, disconnectSocket } = useChatStore();
+  const { listenSocketEvents } = useNotificationStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Quản lý Socket connection tập trung
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      initSocket();
+      setTimeout(() => {
+        listenSocketEvents();
+      }, 500);
+    } else {
+      disconnectSocket();
+    }
+  }, [isAuthenticated, user, initSocket, disconnectSocket, listenSocketEvents]);
 
   return (
     <Routes>

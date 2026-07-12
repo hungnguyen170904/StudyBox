@@ -8,6 +8,7 @@ let socket = null;
 export const useChatStore = create((set, get) => ({
   messages: [],
   onlineUsers: [],
+  typingUsers: {}, // { channelId: [username1, username2] }
   isConnected: false,
   getSocket: () => socket,
 
@@ -68,6 +69,33 @@ export const useChatStore = create((set, get) => ({
             return msg;
           });
           return { messages: newMessages };
+        });
+      });
+
+      socket.on('chat:typing', ({ channelId, username }) => {
+        set((state) => {
+          const currentTyping = state.typingUsers[channelId] || [];
+          if (!currentTyping.includes(username)) {
+            return {
+              typingUsers: {
+                ...state.typingUsers,
+                [channelId]: [...currentTyping, username]
+              }
+            };
+          }
+          return state;
+        });
+      });
+
+      socket.on('chat:stop_typing', ({ channelId, username }) => {
+        set((state) => {
+          const currentTyping = state.typingUsers[channelId] || [];
+          return {
+            typingUsers: {
+              ...state.typingUsers,
+              [channelId]: currentTyping.filter(u => u !== username)
+            }
+          };
         });
       });
     }
@@ -136,6 +164,19 @@ export const useChatStore = create((set, get) => ({
   sendMessage: (channelId, content, type = 'text') => {
     if (socket) {
       socket.emit('chat:send', { channel_id: channelId, content, type });
+      socket.emit('chat:stop_typing', channelId);
+    }
+  },
+
+  sendTyping: (channelId) => {
+    if (socket) {
+      socket.emit('chat:typing', channelId);
+    }
+  },
+
+  sendStopTyping: (channelId) => {
+    if (socket) {
+      socket.emit('chat:stop_typing', channelId);
     }
   },
 

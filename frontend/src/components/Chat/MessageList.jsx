@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Smile } from 'lucide-react';
 
 export default function MessageList({ channelId }) {
-  const { messages, fetchMessages, loadMoreMessages, hasMoreMessages, isLoadingMore, toggleReaction } = useChatStore();
+  const { messages, fetchMessages, loadMoreMessages, hasMoreMessages, isLoadingMore, toggleReaction, typingUsers } = useChatStore();
   const { user } = useAuthStore();
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
@@ -157,6 +157,23 @@ export default function MessageList({ channelId }) {
           );
         })
       )}
+      
+      {/* Typing Indicator */}
+      {typingUsers[channelId] && typingUsers[channelId].length > 0 && (
+        <div className="flex items-center gap-2 text-white/50 text-xs italic mt-2 animate-pulse">
+          <div className="flex gap-1">
+            <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce"></span>
+            <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+            <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+          </div>
+          <span>
+            {typingUsers[channelId].length === 1 
+              ? `${typingUsers[channelId][0]} đang gõ...`
+              : `${typingUsers[channelId].join(', ')} đang gõ...`}
+          </span>
+        </div>
+      )}
+      
       <div ref={messagesEndRef} />
     </div>
   );

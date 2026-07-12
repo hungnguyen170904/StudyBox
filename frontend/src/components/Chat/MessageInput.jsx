@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useChatStore } from '../../store/chatStore';
 import { Send, Image as ImageIcon } from 'lucide-react';
 
 export default function MessageInput({ channelId }) {
   const [content, setContent] = useState('');
-  const { sendMessage } = useChatStore();
+  const { sendMessage, sendTyping, sendStopTyping } = useChatStore();
+  const typingTimeoutRef = useRef(null);
 
   const handleSend = (e) => {
     e.preventDefault();
@@ -12,6 +13,26 @@ export default function MessageInput({ channelId }) {
     
     sendMessage(channelId, content);
     setContent('');
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+  };
+
+  const handleChange = (e) => {
+    setContent(e.target.value);
+
+    // Emit typing event
+    sendTyping(channelId);
+
+    // Xóa timeout cũ nếu có
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Thiết lập timeout mới: sau 2s không gõ thì báo ngừng gõ
+    typingTimeoutRef.current = setTimeout(() => {
+      sendStopTyping(channelId);
+    }, 2000);
   };
 
   return (
@@ -28,7 +49,7 @@ export default function MessageInput({ channelId }) {
         <input
           type="text"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={handleChange}
           placeholder="Nhắn tin vào kênh..."
           className="w-full glass-input rounded-2xl pl-14 pr-12 py-3.5 focus:outline-none transition-all shadow-lg text-white placeholder:text-white/40"
         />

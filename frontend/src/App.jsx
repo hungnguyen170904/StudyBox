@@ -9,6 +9,7 @@ import Invite from './pages/Invite';
 import PrivateRoute from './components/PrivateRoute';
 import { useChatStore } from './store/chatStore';
 import { useNotificationStore } from './store/notificationStore';
+import BackgroundSlider from './components/Layout/BackgroundSlider';
 
 function App() {
   const { checkAuth, user, isAuthenticated } = useAuthStore();
@@ -32,17 +33,19 @@ function App() {
   }, [isAuthenticated, user, initSocket, disconnectSocket, listenSocketEvents]);
 
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      
-      {/* Các route cần đăng nhập */}
-      <Route element={<PrivateRoute />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/room/:id" element={<Room />} />
-        <Route path="/invite/:code" element={<Invite />} />
-      </Route>
-    </Routes>
+    <BackgroundSlider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Các route cần đăng nhập */}
+        <Route element={<PrivateRoute />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/room/:id" element={<Room />} />
+          <Route path="/invite/:code" element={<Invite />} />
+        </Route>
+      </Routes>
+    </BackgroundSlider>
   );
 }
 

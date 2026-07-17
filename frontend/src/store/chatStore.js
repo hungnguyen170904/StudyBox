@@ -189,5 +189,28 @@ export const useChatStore = create((set, get) => ({
     } catch (error) {
       console.error(error);
     }
+  },
+
+  uploadFile: async (channelId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const token = localStorage.getItem('studybox_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/channels/${channelId}/messages/file`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error('Lỗi upload file:', error);
+      throw error;
+    }
   }
 }));

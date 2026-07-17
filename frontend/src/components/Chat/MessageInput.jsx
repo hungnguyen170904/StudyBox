@@ -1,11 +1,13 @@
 import { useState, useRef } from 'react';
 import { useChatStore } from '../../store/chatStore';
-import { Send, Image as ImageIcon } from 'lucide-react';
+import { Send, Image as ImageIcon, Loader2 } from 'lucide-react';
 
 export default function MessageInput({ channelId }) {
   const [content, setContent] = useState('');
-  const { sendMessage, sendTyping, sendStopTyping } = useChatStore();
+  const [isUploading, setIsUploading] = useState(false);
+  const { sendMessage, sendTyping, sendStopTyping, uploadFile } = useChatStore();
   const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const handleSend = (e) => {
     e.preventDefault();
@@ -35,15 +37,47 @@ export default function MessageInput({ channelId }) {
     }, 2000);
   };
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Giới hạn 10MB ở frontend
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File quá lớn. Vui lòng chọn file dưới 10MB.');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      await uploadFile(channelId, file);
+    } catch (err) {
+      alert('Lỗi khi tải file lên!');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''; // Reset input
+      }
+    }
+  };
+
   return (
     <div className="p-4 shrink-0 bg-transparent">
       <form onSubmit={handleSend} className="relative flex items-center">
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileChange} 
+          className="hidden" 
+          accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar" 
+        />
         <button 
           type="button"
-          className="absolute left-3 p-2 text-white/50 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-sm"
-          title="Gửi ảnh/video (Phase sau)"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="absolute left-3 p-2 text-white/50 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-sm disabled:opacity-50"
+          title="Gửi ảnh/video/tài liệu"
         >
-          <ImageIcon className="w-5 h-5 drop-shadow-sm" />
+          {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5 drop-shadow-sm" />}
         </button>
         
         <input

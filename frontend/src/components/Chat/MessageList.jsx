@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
-import { Smile } from 'lucide-react';
+import { Smile, FileText, Download } from 'lucide-react';
 
 export default function MessageList({ channelId }) {
   const { messages, fetchMessages, loadMoreMessages, hasMoreMessages, isLoadingMore, toggleReaction, typingUsers } = useChatStore();
@@ -123,9 +123,37 @@ export default function MessageList({ channelId }) {
                     </span>
                   </div>
                 )}
-                <div className="text-white/90 break-words leading-relaxed text-[15px] group-hover:bg-white/5 rounded-lg p-1 -ml-1 transition-colors inline-block w-fit max-w-[calc(100%-2rem)]">
-                  {msg.content}
-                </div>
+                
+                {msg.type === 'image' ? (
+                  <div className="mt-1">
+                    <img src={msg.content} alt="attachment" className="max-w-[300px] max-h-[300px] rounded-lg object-contain bg-black/20" loading="lazy" />
+                  </div>
+                ) : msg.type === 'video' ? (
+                  <div className="mt-1">
+                    <video src={msg.content} controls className="max-w-[300px] max-h-[300px] rounded-lg bg-black/20" />
+                  </div>
+                ) : msg.content.startsWith('[FILE]:') ? (
+                  <div className="mt-1 mb-1">
+                    <a 
+                      href={msg.content.split('|')[1]} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-colors p-3 rounded-xl border border-white/10 w-fit max-w-[250px] group/file"
+                    >
+                      <div className="bg-blue-500/20 p-2 rounded-lg text-blue-300 group-hover/file:bg-blue-500/30 transition-colors">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="flex flex-col overflow-hidden min-w-0">
+                        <span className="text-sm font-medium text-white truncate">{msg.content.substring(7).split('|')[0].trim()}</span>
+                        <span className="text-xs text-white/50 flex items-center gap-1 mt-0.5"><Download className="w-3 h-3" /> Tải xuống</span>
+                      </div>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-white/90 break-words leading-relaxed text-[15px] group-hover:bg-white/5 rounded-lg p-1 -ml-1 transition-colors inline-block w-fit max-w-[calc(100%-2rem)]">
+                    {msg.content}
+                  </div>
+                )}
                 
                 {/* Hiển thị Reactions */}
                 {msg.reactions && msg.reactions.length > 0 && (

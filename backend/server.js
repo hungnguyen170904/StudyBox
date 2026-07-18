@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 require('dotenv').config();
 
 const app = express();
@@ -22,6 +23,9 @@ const path = require('path');
 // Áp dụng bảo mật Header
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Cho phép load ảnh từ domain khác nếu cần
+
+// Nén dữ liệu
+app.use(compression());
 
 app.use(cors());
 app.use(express.json());
@@ -45,6 +49,7 @@ const friendRoutes = require('./src/routes/friendRoutes');
 const dmRoutes = require('./src/routes/dmRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const documentRoutes = require('./src/routes/documentRoutes');
+const taskRoutes = require('./src/routes/taskRoutes');
 
 // Định tuyến API
 app.use('/api/auth', authRoutes);
@@ -54,6 +59,7 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/dm', dmRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/rooms', taskRoutes); // route là /api/rooms/:roomId/tasks
 
 // Routes cơ bản
 app.get('/', (req, res) => {

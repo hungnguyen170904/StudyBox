@@ -11,8 +11,10 @@ import RoomMembers from '../components/Room/RoomMembers';
 import InviteModal from '../components/Room/InviteModal';
 import RoomSettingsModal from '../components/Room/RoomSettingsModal';
 import CreateChannelModal from '../components/Room/CreateChannelModal';
+import RoomTasksModal from '../components/Room/RoomTasksModal';
 import Whiteboard from '../components/Whiteboard/Whiteboard';
 import DocumentChannel from '../components/DocumentChannel/DocumentChannel';
+import PomodoroTimer from '../components/Room/PomodoroTimer';
 import { useAuthStore } from '../store/authStore';
 
 export default function Room() {
@@ -26,6 +28,7 @@ export default function Room() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
+  const [isTasksOpen, setIsTasksOpen] = useState(false);
 
   useEffect(() => {
     fetchRoomDetails(id);
@@ -156,6 +159,14 @@ export default function Room() {
 
           {/* Các nút hành động (Mời & Cài đặt) */}
           <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsTasksOpen(true)}
+              className="flex items-center gap-2 text-sm font-bold text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 px-3 py-1.5 rounded-lg transition-all border border-blue-400/20"
+              title="Danh sách việc cần làm"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-list-todo"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+              Tasks
+            </button>
             {isOwner && (
               <>
                 <button 
@@ -225,6 +236,14 @@ export default function Room() {
         onClose={() => setIsCreateChannelOpen(false)}
         roomId={id}
       />
+      <RoomTasksModal
+        isOpen={isTasksOpen}
+        onClose={() => setIsTasksOpen(false)}
+        roomId={id}
+      />
+
+      {/* Đồng hồ Pomodoro nổi */}
+      <PomodoroTimer roomId={id} />
     </div>
   );
 }

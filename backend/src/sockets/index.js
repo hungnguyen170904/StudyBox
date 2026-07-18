@@ -6,6 +6,7 @@ const registerChatHandlers = require('./chatHandler');
 const registerMusicHandlers = require('./musicHandler');
 const registerVoiceHandlers = require('./voiceHandler');
 const registerWhiteboardHandlers = require('./whiteboardHandler');
+const pomodoroHandler = require('./pomodoroHandler');
 
 let ioInstance;
 const userSocketsMap = new Map(); // Lưu trữ userId -> Set(socketId)
@@ -78,6 +79,7 @@ module.exports = {
       registerMusicHandlers(io, socket, utils);
       registerVoiceHandlers(io, socket, utils);
       registerWhiteboardHandlers(io, socket, utils);
+      pomodoroHandler(io, socket);
 
       // 3. Xử lý ngắt kết nối
       socket.on('disconnect', () => {

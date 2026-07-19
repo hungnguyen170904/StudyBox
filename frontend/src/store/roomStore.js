@@ -198,5 +198,15 @@ export const useRoomStore = create((set, get) => ({
     }
   },
 
-  clearCurrentRoom: () => set({ currentRoom: null })
+  clearCurrentRoom: () => set({ currentRoom: null }),
+
+  updateMemberStatus: (userId, custom_status) => {
+    set((state) => {
+      if (!state.currentRoom) return state;
+      const updatedMembers = state.currentRoom.members.map(member => 
+        member.id === userId ? { ...member, custom_status } : member
+      );
+      return { currentRoom: { ...state.currentRoom, members: updatedMembers } };
+    });
+  }
 }));

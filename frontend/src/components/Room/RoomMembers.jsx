@@ -66,13 +66,14 @@ export default function RoomMembers({ roomId }) {
               onlineUsers.includes(member.id) ? 'bg-green-500' : 'bg-gray-500'
             }`}></div>
           </div>
-          <div className="flex flex-col overflow-hidden text-left">
             <span className="text-sm font-bold text-white truncate leading-tight drop-shadow-sm">
               {member.display_name || member.username} {isMe && <span className="text-white/50 text-xs font-normal">(Bạn)</span>}
             </span>
-            {(member.display_name && member.display_name !== member.username) && (
-              <span className="text-[10px] text-white/50 truncate leading-tight">@{member.username}</span>
-            )}
+            {member.custom_status ? (
+              <span className="text-[11px] text-blue-300 truncate leading-tight mt-0.5">{member.custom_status}</span>
+            ) : (member.display_name && member.display_name !== member.username) ? (
+              <span className="text-[10px] text-white/50 truncate leading-tight mt-0.5">@{member.username}</span>
+            ) : null}
           </div>
         </div>
 

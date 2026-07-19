@@ -30,14 +30,26 @@ export const useChatStore = create((set, get) => ({
         set({ onlineUsers: users });
       });
 
-      socket.on('user_status_change', ({ userId, isOnline }) => {
+      socket.on('user_status_change', ({ userId, isOnline, custom_status }) => {
         set((state) => {
-          if (isOnline) {
-            return { onlineUsers: [...new Set([...state.onlineUsers, userId])] };
-          } else {
-            return { onlineUsers: state.onlineUsers.filter(id => id !== userId) };
+          let newOnlineUsers = state.onlineUsers;
+          if (isOnline !== undefined) {
+            if (isOnline) {
+              newOnlineUsers = [...new Set([...state.onlineUsers, userId])];
+            } else {
+              newOnlineUsers = state.onlineUsers.filter(id => id !== userId);
+            }
           }
+          return { onlineUsers: newOnlineUsers };
         });
+
+        // Cập nhật custom_status cho roomStore nếu user này nằm trong phòng
+        if (custom_status !== undefined) {
+          const { currentRoom, updateMemberStatus } = require('./roomStore').useRoomStore.getState();
+          if (currentRoom) {
+            updateMemberStatus(userId, custom_status);
+          }
+        }
       });
 
       socket.on('disconnect', () => {

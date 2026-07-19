@@ -22,7 +22,7 @@ const register = async (req, res) => {
 
     // Lưu user vào DB, gán display_name = username
     const result = await db.query(
-      'INSERT INTO users (username, display_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, display_name, email, avatar_url, created_at',
+      'INSERT INTO users (username, display_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, username, display_name, email, avatar_url, custom_status, created_at',
       [username, username, email, passwordHash]
     );
 
@@ -76,6 +76,7 @@ const login = async (req, res) => {
         display_name: user.display_name,
         email: user.email,
         avatar_url: user.avatar_url,
+        custom_status: user.custom_status,
         created_at: user.created_at
       },
       token,
@@ -89,7 +90,7 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     // req.user được lấy từ middleware xác thực
-    const result = await db.query('SELECT id, username, display_name, email, avatar_url, created_at FROM users WHERE id = $1', [req.user.id]);
+    const result = await db.query('SELECT id, username, display_name, email, avatar_url, custom_status, created_at FROM users WHERE id = $1', [req.user.id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Người dùng không tồn tại' });
@@ -105,7 +106,7 @@ const getMe = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { username, display_name } = req.body;
+    const { username, display_name, custom_status } = req.body;
     let avatarUrl = undefined;
 
     // Nếu có file upload
@@ -145,6 +146,11 @@ const updateProfile = async (req, res) => {
       queryArgs.push(avatarUrl);
     }
 
+    if (custom_status !== undefined) {
+      setClauses.push(`custom_status = $${idx++}`);
+      queryArgs.push(custom_status);
+    }
+
     if (setClauses.length === 0) {
       return res.status(400).json({ message: 'Không có dữ liệu gì để cập nhật' });
     }
@@ -154,11 +160,22 @@ const updateProfile = async (req, res) => {
       UPDATE users 
       SET ${setClauses.join(', ')} 
       WHERE id = $${idx} 
-      RETURNING id, username, display_name, email, avatar_url, created_at
+      RETURNING id, username, display_name, email, avatar_url, custom_status, created_at
     `;
 
     const result = await db.query(updateQuery, queryArgs);
     const updatedUser = result.rows[0];
+
+    // Phát sự kiện cập nhật status cho toàn mạng (nếu có đổi custom_status)
+    if (custom_status !== undefined) {
+      const io = require('../sockets').getIo();
+      if (io) {
+        io.emit('user_status_change', {
+          userId: userId,
+          custom_status: custom_status
+        });
+      }
+    }
 
     res.status(200).json({
       message: 'Cập nhật thành công',

@@ -6,6 +6,7 @@ export default function ProfileSettings({ isOpen, onClose }) {
   const { user, updateProfile } = useAuthStore();
   const [username, setUsername] = useState(user?.username || '');
   const [displayName, setDisplayName] = useState(user?.display_name || user?.username || '');
+  const [customStatus, setCustomStatus] = useState(user?.custom_status || '');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(user?.avatar_url || '');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +35,9 @@ export default function ProfileSettings({ isOpen, onClose }) {
     }
     if (displayName && displayName !== user.display_name) {
       formData.append('display_name', displayName);
+    }
+    if (customStatus !== user.custom_status) {
+      formData.append('custom_status', customStatus);
     }
     if (file) {
       formData.append('avatar', file);
@@ -129,6 +133,21 @@ export default function ProfileSettings({ isOpen, onClose }) {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Dùng để đăng nhập hoặc kết bạn"
                 className="w-full glass-input rounded-xl p-3 outline-none"
+              />
+            </div>
+
+            {/* Custom Status Section */}
+            <div>
+              <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2 drop-shadow-sm">
+                Trạng thái (Custom Status)
+              </label>
+              <input 
+                type="text" 
+                value={customStatus}
+                onChange={(e) => setCustomStatus(e.target.value)}
+                placeholder="Ví dụ: 🎧 Đang nghe lofi, 📚 Đang giải bài tập"
+                maxLength={100}
+                className="w-full glass-input rounded-xl p-3 outline-none text-blue-300 placeholder-blue-300/30 font-medium"
               />
             </div>
 

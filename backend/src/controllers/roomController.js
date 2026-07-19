@@ -1,4 +1,5 @@
 const db = require('../db');
+const redis = require('../redis');
 
 // Lấy danh sách room public (Hỗ trợ search) và các phòng user đang tham gia
 const getRooms = async (req, res) => {
@@ -6,6 +7,14 @@ const getRooms = async (req, res) => {
     const { search } = req.query;
     const userId = req.user.id;
     
+    const cacheKey = `rooms:${userId}${search ? `:${search}` : ''}`;
+    
+    // Kiểm tra trong Redis Cache trước
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+      return res.status(200).json({ rooms: JSON.parse(cachedData) });
+    }
+
     let query = `
        SELECT DISTINCT r.id, r.name, r.is_public, r.created_at, u.username as owner_name 
        FROM rooms r 
@@ -23,6 +32,10 @@ const getRooms = async (req, res) => {
     query += ` ORDER BY r.created_at DESC`;
 
     const result = await db.query(query, params);
+    
+    // Lưu vào Redis Cache (Sống trong 60 giây)
+    await redis.set(cacheKey, JSON.stringify(result.rows), 'EX', 60);
+
     res.status(200).json({ rooms: result.rows });
   } catch (error) {
     console.error('Lỗi getRooms:', error);
@@ -88,7 +101,7 @@ const getRoomById = async (req, res) => {
 
     const channelsResult = await db.query('SELECT * FROM channels WHERE room_id = $1 ORDER BY created_at ASC', [id]);
     const membersResult = await db.query(
-      `SELECT m.role, u.id, u.username, u.display_name, u.avatar_url 
+      `SELECT m.role, u.id, u.username, u.display_name, u.avatar_url, u.custom_status 
        FROM room_members m 
        JOIN users u ON m.user_id = u.id 
        WHERE m.room_id = $1`, 

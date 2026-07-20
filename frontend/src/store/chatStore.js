@@ -58,12 +58,27 @@ export const useChatStore = create((set, get) => ({
 
       socket.on('chat:new', (message) => {
         set((state) => ({ messages: [...state.messages, message] }));
+        
+        // Phát âm thanh nếu tin nhắn không phải của mình
+        import('./authStore').then(({ useAuthStore }) => {
+          const currentUser = useAuthStore.getState().user;
+          if (currentUser && message.user_id !== currentUser.id) {
+            const audio = new Audio('/sounds/ting.ogg');
+            audio.volume = 0.5;
+            audio.play().catch(err => console.log('Autoplay prevented:', err));
+          }
+        });
       });
 
       socket.on('dm:receive', async (message) => {
         // Tránh vòng lặp import bằng cách dùng dynamic import trong ESM
         const { useDmStore } = await import('./dmStore');
         useDmStore.getState().addMessage(message);
+
+        // Phát âm thanh
+        const audio = new Audio('/sounds/ting.ogg');
+        audio.volume = 0.5;
+        audio.play().catch(err => console.log('Autoplay prevented:', err));
       });
 
       socket.on('message_reaction_update', (data) => {

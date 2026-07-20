@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
 import { Smile, FileText, Download } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function MessageList({ channelId }) {
   const { messages, fetchMessages, loadMoreMessages, hasMoreMessages, isLoadingMore, toggleReaction, typingUsers } = useChatStore();
@@ -150,8 +152,10 @@ export default function MessageList({ channelId }) {
                     </a>
                   </div>
                 ) : (
-                  <div className="text-white/90 break-words leading-relaxed text-[15px] group-hover:bg-white/5 rounded-lg p-1 -ml-1 transition-colors inline-block w-fit max-w-[calc(100%-2rem)]">
-                    {msg.content}
+                  <div className="text-white/90 break-words leading-relaxed text-[15px] group-hover:bg-white/5 rounded-lg p-1 -ml-1 transition-colors inline-block w-fit max-w-full overflow-hidden prose prose-invert prose-p:my-1 prose-pre:bg-black/40 prose-pre:border prose-pre:border-white/10 prose-pre:p-3 prose-pre:rounded-xl prose-a:text-blue-400">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
                 )}
                 

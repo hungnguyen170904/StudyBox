@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const fetchApi = async (endpoint, options = {}) => {
   const token = localStorage.getItem('studybox_token');
@@ -17,7 +17,8 @@ export const fetchApi = async (endpoint, options = {}) => {
     headers,
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  const data = contentType.includes('application/json') ? await response.json() : null;
 
   if (!response.ok) {
     throw new Error(data.message || 'Đã có lỗi xảy ra');

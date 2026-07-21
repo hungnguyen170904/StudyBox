@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { fetchApi } from '../utils/api';
+import { fetchApi } from '../lib/api';
 
 export const useTaskStore = create((set, get) => ({
   tasks: [],

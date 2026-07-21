@@ -2,9 +2,10 @@ const db = require('../db');
 
 module.exports = (io, socket, { getUserSockets }) => {
   // 1. Xử lý gửi tin nhắn Chat trong Kênh (Channel)
-  socket.on('chat:send', async (data) => {
+  socket.on('chat:send', async (data = {}) => {
     try {
       const { channel_id, content, type = 'text' } = data;
+      if (!socket.rooms.has(`channel_${channel_id}`) || typeof content !== 'string' || !content.trim() || content.length > 4000) return;
       
       // Lưu tin nhắn vào DB
       const result = await db.query(
@@ -71,6 +72,7 @@ module.exports = (io, socket, { getUserSockets }) => {
 
   // 3. Tính năng Đang gõ... (Typing Indicator)
   socket.on('chat:typing', (channelId) => {
+    if (!socket.rooms.has(`channel_${channelId}`)) return;
     socket.to(`channel_${channelId}`).emit('chat:typing', {
       channelId,
       username: socket.user.display_name || socket.user.username
@@ -78,6 +80,7 @@ module.exports = (io, socket, { getUserSockets }) => {
   });
 
   socket.on('chat:stop_typing', (channelId) => {
+    if (!socket.rooms.has(`channel_${channelId}`)) return;
     socket.to(`channel_${channelId}`).emit('chat:stop_typing', {
       channelId,
       username: socket.user.display_name || socket.user.username

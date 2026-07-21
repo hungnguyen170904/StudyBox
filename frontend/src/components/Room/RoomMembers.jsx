@@ -66,6 +66,7 @@ export default function RoomMembers({ roomId }) {
               onlineUsers.includes(member.id) ? 'bg-green-500' : 'bg-gray-500'
             }`}></div>
           </div>
+            <div className="min-w-0 flex flex-col">
             <span className="text-sm font-bold text-white truncate leading-tight drop-shadow-sm">
               {member.display_name || member.username} {isMe && <span className="text-white/50 text-xs font-normal">(Bạn)</span>}
             </span>

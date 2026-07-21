@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { isChannelMember } = require('../middlewares/channelMiddleware');
 
 // Import handlers
 const registerChatHandlers = require('./chatHandler');
@@ -51,7 +52,8 @@ module.exports = {
         socket.emit('online_users_list', onlineUsers);
       });
 
-      socket.on('join_channel', (channelId) => {
+      socket.on('join_channel', async (channelId) => {
+        if (!await isChannelMember(channelId, socket.user.id)) return;
         socket.join(`channel_${channelId}`);
         console.log(`${socket.user.username} joined channel_${channelId}`);
       });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useTaskStore } from '../../../store/taskStore';
-import { useChatStore } from '../../../store/chatStore';
-import { useAuthStore } from '../../../store/authStore';
+import { useTaskStore } from '../../store/taskStore';
+import { useChatStore } from '../../store/chatStore';
+import { useAuthStore } from '../../store/authStore';
 import { X, Check, Trash2, Plus, ListTodo } from 'lucide-react';
 
 export default function RoomTasksModal({ isOpen, onClose, roomId }) {

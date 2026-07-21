@@ -1,10 +1,12 @@
 const db = require('../db');
+const { isChannelMember } = require('../middlewares/channelMiddleware');
 
 // Lấy lịch sử tin nhắn của một channel (Phân trang với cursor)
 const getMessages = async (req, res) => {
   try {
     const { id } = req.params; // channel_id
     const { cursor, limit = 50 } = req.query;
+    const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 50, 1), 100);
     
     let query = `
        SELECT m.*, u.username, u.display_name, u.avatar_url,
@@ -24,7 +26,7 @@ const getMessages = async (req, res) => {
     }
 
     query += ` ORDER BY m.created_at DESC LIMIT ${cursor ? '$3' : '$2'}`;
-    params.push(limit);
+    params.push(safeLimit);
 
     const result = await db.query(query, params);
     
@@ -42,6 +44,17 @@ const toggleReaction = async (req, res) => {
     const { messageId } = req.params;
     const { emoji } = req.body;
     const userId = req.user.id;
+
+    const message = await db.query('SELECT channel_id FROM messages WHERE id = $1', [messageId]);
+    if (message.rows.length === 0) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+    if (!await isChannelMember(message.rows[0].channel_id, userId)) {
+      return res.status(403).json({ message: 'Access denied for this message' });
+    }
+    if (typeof emoji !== 'string' || emoji.length === 0 || emoji.length > 16) {
+      return res.status(400).json({ message: 'Invalid reaction' });
+    }
 
     // Kiểm tra xem user đã thả reaction này chưa
     const check = await db.query(

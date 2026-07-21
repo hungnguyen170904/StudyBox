@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const chatController = require('../controllers/chatController');
 const { verifyToken } = require('../middlewares/authMiddleware');
+const { requireChannelMembership } = require('../middlewares/channelMiddleware');
 
 const uploadDir = path.join(__dirname, '../../uploads/chat');
 if (!fs.existsSync(uploadDir)) {
@@ -27,8 +28,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // Giới hạn 10MB
 });
 
-router.get('/:id/messages', verifyToken, chatController.getMessages);
+router.get('/:id/messages', verifyToken, requireChannelMembership('id'), chatController.getMessages);
 router.post('/messages/:messageId/reactions', verifyToken, chatController.toggleReaction);
-router.post('/:id/messages/file', verifyToken, upload.single('file'), chatController.uploadFile);
+router.post('/:id/messages/file', verifyToken, requireChannelMembership('id'), upload.single('file'), chatController.uploadFile);
 
 module.exports = router;

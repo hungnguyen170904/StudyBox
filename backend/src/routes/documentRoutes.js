@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const documentController = require('../controllers/documentController');
 const { verifyToken } = require('../middlewares/authMiddleware');
+const { requireChannelMembership } = require('../middlewares/channelMiddleware');
 
 // Đảm bảo thư mục lưu trữ tồn tại
 const uploadDir = path.join(__dirname, '../../uploads/documents');
@@ -32,8 +33,8 @@ const upload = multer({
 
 router.use(verifyToken);
 
-router.get('/:channelId', documentController.getDocuments);
-router.post('/:channelId', upload.single('file'), documentController.uploadDocument);
+router.get('/:channelId', requireChannelMembership(), documentController.getDocuments);
+router.post('/:channelId', requireChannelMembership(), upload.single('file'), documentController.uploadDocument);
 router.delete('/:id', documentController.deleteDocument);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { usePomodoroStore } from '../../../store/pomodoroStore';
-import { useChatStore } from '../../../store/chatStore';
+import { usePomodoroStore } from '../../store/pomodoroStore';
+import { useChatStore } from '../../store/chatStore';
 import { Play, Pause, RotateCcw, Timer, X } from 'lucide-react';
 
 export default function PomodoroTimer({ roomId }) {

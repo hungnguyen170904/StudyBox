@@ -4,22 +4,22 @@
 @layer base {
   body {
     @apply text-textMain antialiased min-h-screen font-sans;
-    background-color: #1a1a2e; /* Fallback color */
+    background-color: #0B0F19; /* Updated Fallback color */
   }
 }
 
 @layer components {
-  /* Class dùng chung cho hiệu ứng Kính mờ (Glassmorphism) */
+  /* Premium Glassmorphism */
   .glass-panel {
-    @apply bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)];
+    @apply bg-surface/60 backdrop-blur-2xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] transition-all duration-300;
   }
   
   .glass-sidebar {
-    @apply bg-black/50 backdrop-blur-xl border-r border-white/10;
+    @apply bg-background/80 backdrop-blur-3xl border-r border-white/5 shadow-xl;
   }
 
   .glass-input {
-    @apply bg-black/30 text-white border border-white/20 focus:border-white/50 focus:bg-black/50 outline-none transition-all;
+    @apply bg-surface/50 text-white border border-white/10 focus:border-primary/50 focus:bg-surface/80 outline-none transition-all duration-300 focus:shadow-[0_0_15px_rgba(139,92,246,0.15)];
   }
 }
 
@@ -32,8 +32,8 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-surfaceLight rounded-full;
+  @apply bg-surfaceLight/50 rounded-full border border-white/5;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-textMuted;
+  @apply bg-surfaceLight;
 }

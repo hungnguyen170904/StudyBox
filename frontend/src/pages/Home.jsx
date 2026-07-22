@@ -11,6 +11,8 @@ import ProfileSettings from '../components/ProfileSettings';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 import { useNotificationStore } from '../store/notificationStore';
 import { Bell, Search, Lock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../lib/utils';
 
 export default function Home() {
   const { user, logout } = useAuthStore();
@@ -200,13 +202,15 @@ export default function Home() {
                       value={newRoomName}
                       onChange={(e) => setNewRoomName(e.target.value)}
                     />
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       type="submit"
                       disabled={isCreating || !newRoomName.trim()}
-                      className="w-full py-2.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg font-medium transition-all shadow-lg backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="w-full py-2.5 bg-primary/80 hover:bg-primary border border-white/10 text-white rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)] backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                       {isCreating ? 'Đang tạo...' : 'Tạo phòng'}
-                    </button>
+                    </motion.button>
                   </form>
                 </div>
               </div>
@@ -228,31 +232,51 @@ export default function Home() {
                 </div>
 
                 {isLoading ? (
-                  <div className="flex justify-center p-8">
-                    <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="glass-panel p-5 rounded-xl animate-pulse">
+                        <div className="h-5 bg-white/10 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-white/5 rounded w-1/2 mb-6"></div>
+                        <div className="flex justify-between">
+                          <div className="h-4 bg-white/10 rounded w-1/4"></div>
+                          <div className="h-6 bg-white/20 rounded w-1/4"></div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : rooms.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {rooms.map(room => (
-                      <div 
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                  >
+                    {rooms.map((room, index) => (
+                      <motion.div 
                         key={room.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => navigate(`/room/${room.id}`)}
-                        className="bg-black/20 hover:bg-black/40 backdrop-blur-sm border border-white/10 p-5 rounded-xl cursor-pointer transition-all group flex flex-col relative"
+                        className="glass-panel hover:bg-white/5 p-5 rounded-xl cursor-pointer transition-colors group flex flex-col relative overflow-hidden"
                       >
+                        <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                        
                         {!room.is_public && (
                           <div className="absolute top-3 right-3 text-white/40" title="Phòng riêng tư">
                             <Lock className="w-4 h-4" />
                           </div>
                         )}
-                        <h3 className="font-bold text-white mb-1 group-hover:text-blue-300 transition-colors pr-6 truncate">{room.name}</h3>
-                        <p className="text-sm text-white/60">Tạo bởi: {room.owner_name}</p>
-                        <div className="mt-4 flex justify-between items-center text-xs font-semibold">
-                          <span className="text-white/50">{new Date(room.created_at).toLocaleDateString('vi-VN')}</span>
-                          <span className="bg-white/10 text-white px-3 py-1.5 rounded-lg group-hover:bg-white group-hover:text-black transition-colors">Tham gia</span>
+                        <h3 className="font-bold text-white mb-1 group-hover:text-primary transition-colors pr-6 truncate z-10">{room.name}</h3>
+                        <p className="text-sm text-textMuted z-10">Tạo bởi: {room.owner_name}</p>
+                        <div className="mt-4 flex justify-between items-center text-xs font-semibold z-10">
+                          <span className="text-white/40">{new Date(room.created_at).toLocaleDateString('vi-VN')}</span>
+                          <span className="bg-white/10 text-white px-3 py-1.5 rounded-lg group-hover:bg-primary group-hover:text-white transition-all shadow-md">Tham gia</span>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 ) : (
                   <div className="text-center p-12 border-2 border-dashed border-white/20 rounded-xl text-white/60 glass-panel">
                     Chưa có phòng nào. Hãy là người đầu tiên tạo phòng!

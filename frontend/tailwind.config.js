@@ -7,16 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#2B2D31', // Sáng hơn slate-900 rất nhiều (tương tự màu Discord chuẩn)
-        surface: '#313338',    // Sáng hơn nền một chút để tạo nổi bật
-        surfaceLight: '#404249', // Dùng cho viền và hover
-        primary: '#5865F2',    // Đổi màu nhấn sang tone xanh tím dịu hơn của Discord
-        primaryHover: '#4752C4',
-        textMain: '#F2F3F5',   // Trắng dịu
-        textMuted: '#B5BAC1',  // Xám nhạt
+        background: '#0B0F19', // Deep dark blue-gray
+        surface: '#1A1F2C',    // Slightly lighter blue-gray
+        surfaceLight: '#2D3748', 
+        primary: '#8B5CF6',    // Vibrant Violet
+        primaryHover: '#7C3AED',
+        secondary: '#06B6D4',  // Cyan accent
+        textMain: '#F8FAFC',
+        textMuted: '#94A3B8',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       }
     },
   },

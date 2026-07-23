@@ -4,6 +4,8 @@ import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
 import { useRoomStore } from '../../store/roomStore';
 import { Plus, ListMusic, PlaySquare, X, Play, Pause, SkipForward, Repeat, Repeat1 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-toastify';
 
 /* ───── Helpers ───── */
 
@@ -203,6 +205,7 @@ export default function MusicChannel({ channelId }) {
     e.preventDefault();
     if (!urlInput.trim()) return;
     addTrack(socket, channelId, urlInput, urlInput);
+    toast.success('Đã thêm bài hát vào hàng đợi!');
     setUrlInput('');
   };
 
@@ -277,30 +280,34 @@ export default function MusicChannel({ channelId }) {
                 </button>
 
                 {/* Play */}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={handlePlay}
                   className={`p-3 rounded-full transition-all shadow-md ${
                     playbackState.isPlaying
-                      ? 'bg-blue-500/30 text-blue-300 border border-blue-500/30'
+                      ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_15px_rgba(139,92,246,0.3)]'
                       : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
                   }`}
                   title="Phát"
                 >
                   <Play className="w-6 h-6 fill-current" />
-                </button>
+                </motion.button>
 
                 {/* Pause */}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={handlePause}
                   className={`p-3 rounded-full transition-all shadow-md ${
                     !playbackState.isPlaying
-                      ? 'bg-blue-500/30 text-blue-300 border border-blue-500/30'
+                      ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_15px_rgba(139,92,246,0.3)]'
                       : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
                   }`}
                   title="Tạm dừng"
                 >
                   <Pause className="w-6 h-6 fill-current" />
-                </button>
+                </motion.button>
 
                 {/* Next */}
                 <button
@@ -357,36 +364,42 @@ export default function MusicChannel({ channelId }) {
             </div>
           ) : (
             <div className="space-y-2">
-              {queue.map((track, idx) => (
-                <div
-                  key={track.id}
-                  className={`relative p-3 rounded-xl flex flex-col gap-1 transition-all cursor-default border ${
-                    currentUrl === track.url ? 'bg-blue-500/20 border-blue-500/30 shadow-md' : 'bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10'
-                  }`}
-                >
-                  <div className="text-sm font-bold text-white truncate pr-8 drop-shadow-sm" title={track.title}>
-                    <span className="text-white/40 mr-1.5 font-normal">{idx + 1}.</span>
-                    {track.title}
-                  </div>
-                  <div className="text-[11px] text-white/50 flex justify-between items-center mt-1">
-                    <span>Thêm bởi: {track.addedBy}</span>
-                    {currentUrl === track.url && (
-                      <span className="text-blue-300 font-bold uppercase tracking-wider bg-blue-500/20 px-1.5 py-0.5 rounded backdrop-blur-sm">
-                        {playbackState.isPlaying ? '▶ Đang phát' : '⏸ Đã dừng'}
-                      </span>
+              <AnimatePresence>
+                {queue.map((track, idx) => (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    layout
+                    key={track.id}
+                    className={`relative p-3 rounded-xl flex flex-col gap-1 transition-all cursor-default border ${
+                      currentUrl === track.url ? 'bg-primary/20 border-primary/40 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10'
+                    }`}
+                  >
+                    <div className="text-sm font-bold text-white truncate pr-8 drop-shadow-sm" title={track.title}>
+                      <span className="text-white/40 mr-1.5 font-normal">{idx + 1}.</span>
+                      {track.title}
+                    </div>
+                    <div className="text-[11px] text-white/50 flex justify-between items-center mt-1">
+                      <span>Thêm bởi: {track.addedBy}</span>
+                      {currentUrl === track.url && (
+                        <span className="text-primary font-bold uppercase tracking-wider bg-primary/20 px-1.5 py-0.5 rounded backdrop-blur-sm animate-pulse">
+                          {playbackState.isPlaying ? '▶ Đang phát' : '⏸ Đã dừng'}
+                        </span>
+                      )}
+                    </div>
+                    {isOwner && (
+                      <button
+                        onClick={() => handleDeleteTrack(track.id)}
+                        className="absolute top-3 right-3 text-white/30 hover:text-red-400 hover:bg-red-500/20 transition-all p-1.5 rounded-lg shadow-sm opacity-50 hover:opacity-100 backdrop-blur-sm"
+                        title="Xóa khỏi danh sách"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                  </div>
-                  {isOwner && (
-                    <button
-                      onClick={() => handleDeleteTrack(track.id)}
-                      className="absolute top-3 right-3 text-white/30 hover:text-red-400 hover:bg-red-500/20 transition-all p-1.5 rounded-lg shadow-sm opacity-50 hover:opacity-100 backdrop-blur-sm"
-                      title="Xóa khỏi danh sách"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>

@@ -5,6 +5,8 @@ import PrivateRoute from './components/PrivateRoute';
 import { useChatStore } from './store/chatStore';
 import { useNotificationStore } from './store/notificationStore';
 import BackgroundSlider from './components/Layout/BackgroundSlider';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Lazy loading pages
 const Login = lazy(() => import('./pages/Login'));
@@ -43,6 +45,13 @@ function App() {
 
   return (
     <BackgroundSlider>
+      <ToastContainer 
+        theme="dark" 
+        position="bottom-right" 
+        autoClose={3000} 
+        hideProgressBar={true} 
+        toastClassName="!bg-black/70 !backdrop-blur-xl !border !border-white/10 !shadow-lg !text-white !rounded-xl" 
+      />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/login" element={<Login />} />

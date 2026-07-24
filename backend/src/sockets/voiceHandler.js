@@ -1,3 +1,6 @@
+const db = require('../db');
+const { isChannelMember } = require('../middlewares/channelMiddleware');
+
 module.exports = (io, socket) => {
   // Lưu trạng thái kênh thoại của socket hiện tại để dễ dọn dẹp
   if (socket.voiceChannelId === undefined) {
@@ -5,6 +8,13 @@ module.exports = (io, socket) => {
   }
 
   socket.on('voice:join', async (channel_id) => {
+    // Kiểm tra membership trước khi cho join voice
+    const isMember = await isChannelMember(channel_id, socket.user.id);
+    if (!isMember) {
+      console.warn(`[Security] ${socket.user.username} cố join voice channel ${channel_id} không hợp lệ.`);
+      return;
+    }
+
     // Nếu đang ở kênh khác thì rời kênh cũ trước
     if (socket.voiceChannelId && socket.voiceChannelId !== channel_id) {
       socket.leave(`voice_${socket.voiceChannelId}`);
@@ -27,6 +37,13 @@ module.exports = (io, socket) => {
 
   socket.on('voice:signal', (data) => {
     // data gồm: { toSocketId, signalData, fromUserId, fromUsername }
+    // Chỉ relay nếu target socket cũng đang trong cùng voice room (tránh signal tới socket ngoài)
+    const targetSocket = io.sockets.sockets.get(data.toSocketId);
+    if (!targetSocket || !socket.voiceChannelId || targetSocket.voiceChannelId !== socket.voiceChannelId) {
+      console.warn(`[Security] ${socket.user.username} cố relay signal tới socket ${data.toSocketId} không trong cùng voice channel.`);
+      return;
+    }
+
     io.to(data.toSocketId).emit('voice:signal', {
       fromSocketId: socket.id,
       fromUserId: socket.user.id,
@@ -43,3 +60,4 @@ module.exports = (io, socket) => {
     }
   });
 };
+

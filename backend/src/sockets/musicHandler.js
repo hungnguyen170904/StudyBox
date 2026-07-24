@@ -1,10 +1,34 @@
 const redis = require('../redis');
+const { isChannelMember } = require('../middlewares/channelMiddleware');
+
+// URL allow-list để phòng chống SSRF
+const ALLOWED_MUSIC_HOSTS = ['youtube.com', 'www.youtube.com', 'youtu.be', 'm.youtube.com', 'soundcloud.com', 'www.soundcloud.com', 'on.soundcloud.com'];
+
+function isAllowedMusicUrl(url) {
+  try {
+    const parsed = new URL(url);
+    // Từ chối mọi URL không phải https
+    if (parsed.protocol !== 'https:') return false;
+    // Kiểm tra hostname nằm trong allow-list
+    return ALLOWED_MUSIC_HOSTS.some(host => parsed.hostname === host);
+  } catch {
+    return false;
+  }
+}
 
 module.exports = (io, socket, { checkIsOwner }) => {
-  // 1. Thêm nhạc vào queue (Ai cũng thêm được)
+  // 1. Thêm nhạc vào queue (Ai cũng thêm được — nhưng phải là thành viên channel)
   socket.on('music:add', async (data) => {
     let { channel_id, url, title } = data;
-    
+
+    // Kiểm tra thành viên channel
+    const isMember = await isChannelMember(channel_id, socket.user.id);
+    if (!isMember) {
+      console.warn(`[Security] ${socket.user.username} cố thêm nhạc vào channel ${channel_id} không hợp lệ.`);
+      return;
+    }
+
+    // Resolve SoundCloud short link trước khi validate
     if (url.includes('on.soundcloud.com')) {
       try {
         const response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
@@ -12,6 +36,13 @@ module.exports = (io, socket, { checkIsOwner }) => {
       } catch (err) {
         console.log('Lỗi resolve SoundCloud link:', err);
       }
+    }
+
+    // Kiểm tra URL có trong allow-list không (chống SSRF)
+    if (!isAllowedMusicUrl(url)) {
+      console.warn(`[Security] ${socket.user.username} cố thêm URL không hợp lệ: ${url}`);
+      socket.emit('music:error', { message: 'Chỉ hỗ trợ link YouTube và SoundCloud.' });
+      return;
     }
 
     if (url.includes('soundcloud.com')) {
@@ -129,8 +160,13 @@ module.exports = (io, socket, { checkIsOwner }) => {
     io.to(`channel_${channel_id}`).emit('music:state_sync', state);
   });
 
-  // 5. User mới join -> Gửi state hiện tại
+  // 5. User mới join -> Gửi state hiện tại (kiểm tra membership)
   socket.on('music:request_sync', async (channel_id) => {
+    const isMember = await isChannelMember(channel_id, socket.user.id);
+    if (!isMember) {
+      console.warn(`[Security] ${socket.user.username} cố request music sync từ channel ${channel_id} không hợp lệ.`);
+      return;
+    }
     const stateStr = await redis.get(`music_state:${channel_id}`);
     if (stateStr) {
       socket.emit('music:state_sync', JSON.parse(stateStr));

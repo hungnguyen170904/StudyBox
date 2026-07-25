@@ -72,12 +72,15 @@ export default function Home() {
       
       {/* Cột trái (Sidebar DM & Friends) */}
       <div className="w-60 glass-sidebar flex flex-col shrink-0">
-        <div className="h-14 flex items-center justify-center border-b border-white/10 shadow-sm px-4">
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm hoặc bắt chuyện" 
-            className="w-full glass-input text-xs px-3 py-1.5 rounded-full outline-none placeholder-white/50" 
-          />
+        <div className="h-14 flex items-center justify-center border-b border-white/10 shadow-sm px-3">
+          <button 
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: 'k', bubbles: true }))}
+            className="w-full glass-input text-xs px-3 py-1.5 rounded-full outline-none flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-left"
+          >
+            <Search className="w-3.5 h-3.5 shrink-0" />
+            <span className="flex-1">Tìm kiếm...</span>
+            <kbd className="text-[9px] bg-white/10 px-1 py-0.5 rounded font-mono shrink-0">Ctrl K</kbd>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">

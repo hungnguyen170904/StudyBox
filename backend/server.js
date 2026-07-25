@@ -86,6 +86,7 @@ const dmRoutes = require('./src/routes/dmRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const documentRoutes = require('./src/routes/documentRoutes');
 const taskRoutes = require('./src/routes/taskRoutes');
+const searchRoutes = require('./src/routes/searchRoutes');
 
 // Định tuyến API
 app.use('/api/auth', authRoutes);
@@ -96,6 +97,8 @@ app.use('/api/dm', dmRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/rooms', taskRoutes); // route là /api/rooms/:roomId/tasks
+app.use('/api/search', searchRoutes);
+
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {

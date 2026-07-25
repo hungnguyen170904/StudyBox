@@ -12,7 +12,9 @@ router.post('/:roomId/tasks', requireRoomMembership('roomId'), taskController.cr
 
 // Yêu cầu phải là creator hoặc admin/owner của phòng để sửa/xóa task
 router.put('/tasks/:taskId', requireTaskOwnerOrAdmin, taskController.toggleTask);
+router.patch('/tasks/:taskId', requireTaskOwnerOrAdmin, taskController.updateTask);
 router.delete('/tasks/:taskId', requireTaskOwnerOrAdmin, taskController.deleteTask);
 
 module.exports = router;
+
 

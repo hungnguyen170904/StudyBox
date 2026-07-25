@@ -1,10 +1,11 @@
-import { useEffect, Suspense, lazy } from 'react';
+import { useEffect, Suspense, lazy, useState, useCallback } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import PrivateRoute from './components/PrivateRoute';
 import { useChatStore } from './store/chatStore';
 import { useNotificationStore } from './store/notificationStore';
 import BackgroundSlider from './components/Layout/BackgroundSlider';
+import SearchDialog from './components/Search/SearchDialog';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -26,6 +27,7 @@ function App() {
   const { checkAuth, user, isAuthenticated } = useAuthStore();
   const { initSocket, disconnectSocket } = useChatStore();
   const { listenSocketEvents } = useNotificationStore();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -43,6 +45,19 @@ function App() {
     }
   }, [isAuthenticated, user, initSocket, disconnectSocket, listenSocketEvents]);
 
+  // Global Ctrl+K / Cmd+K shortcut để mở Search
+  const handleKeyDown = useCallback((e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      if (isAuthenticated) setIsSearchOpen(prev => !prev);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
     <BackgroundSlider>
       <ToastContainer 
@@ -52,6 +67,12 @@ function App() {
         hideProgressBar={true} 
         toastClassName="!bg-black/70 !backdrop-blur-xl !border !border-white/10 !shadow-lg !text-white !rounded-xl" 
       />
+
+      {/* Search Dialog toàn cục — Ctrl+K */}
+      {isAuthenticated && (
+        <SearchDialog isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      )}
+
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/login" element={<Login />} />

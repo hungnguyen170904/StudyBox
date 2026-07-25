@@ -17,13 +17,13 @@ export const useTaskStore = create((set, get) => ({
     }
   },
 
-  createTask: async (roomId, content) => {
+  createTask: async (roomId, content, extra = {}) => {
     try {
       await fetchApi(`/rooms/${roomId}/tasks`, {
         method: 'POST',
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content, ...extra })
       });
-      // Component RoomTasks sẽ lắng nghe sự kiện 'task:new' qua Socket để update UI
+      // Socket 'task:new' sẽ update UI
     } catch (error) {
       console.error('Lỗi tạo task:', error);
     }
@@ -32,16 +32,27 @@ export const useTaskStore = create((set, get) => ({
   toggleTask: async (taskId) => {
     try {
       await fetchApi(`/rooms/tasks/${taskId}`, { method: 'PUT' });
-      // Socket 'task:update' sẽ lo cập nhật
     } catch (error) {
       console.error('Lỗi cập nhật task:', error);
+    }
+  },
+
+  // Cập nhật chi tiết task (status, priority, deadline, assigned_to)
+  patchTask: async (taskId, fields) => {
+    try {
+      await fetchApi(`/rooms/tasks/${taskId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(fields)
+      });
+      // Socket 'task:update' sẽ cập nhật UI
+    } catch (error) {
+      console.error('Lỗi patch task:', error);
     }
   },
 
   deleteTask: async (taskId) => {
     try {
       await fetchApi(`/rooms/tasks/${taskId}`, { method: 'DELETE' });
-      // Socket 'task:delete' sẽ lo xoá
     } catch (error) {
       console.error('Lỗi xoá task:', error);
     }
@@ -49,11 +60,11 @@ export const useTaskStore = create((set, get) => ({
 
   // Xử lý sự kiện Socket
   addTask: (task) => set((state) => ({ tasks: [task, ...state.tasks] })),
-  
+
   updateTask: (updatedTask) => set((state) => ({
     tasks: state.tasks.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t)
   })),
-  
+
   removeTask: (taskId) => set((state) => ({
     tasks: state.tasks.filter(t => t.id !== taskId)
   }))

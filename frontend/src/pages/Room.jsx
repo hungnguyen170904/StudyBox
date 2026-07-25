@@ -29,6 +29,7 @@ export default function Room() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
   const [isTasksOpen, setIsTasksOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState(null); // State cho chức năng reply
 
   useEffect(() => {
     fetchRoomDetails(id);
@@ -196,8 +197,12 @@ export default function Room() {
           <div className="flex-1 flex flex-col min-w-0">
             {activeChannel?.type === 'text' ? (
               <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)]">
-                <MessageList channelId={activeChannel.id} />
-                <MessageInput channelId={activeChannel.id} />
+                <MessageList channelId={activeChannel.id} onReply={(msg) => setReplyTo(msg)} />
+                <MessageInput 
+                  channelId={activeChannel.id} 
+                  replyTo={replyTo} 
+                  onCancelReply={() => setReplyTo(null)} 
+                />
               </div>
             ) : activeChannel?.type === 'music' ? (
               <MusicChannel channelId={activeChannel.id} />

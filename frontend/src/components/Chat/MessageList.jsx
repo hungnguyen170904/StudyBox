@@ -1,17 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
-import { Smile, FileText, Download } from 'lucide-react';
+import { Smile, FileText, Download, Reply } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
 
-export default function MessageList({ channelId }) {
+// Helper: format ngày
+function formatDateLabel(dateStr) {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return 'Hôm nay';
+  if (date.toDateString() === yesterday.toDateString()) return 'Hôm qua';
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+export default function MessageList({ channelId, onReply }) {
   const { messages, fetchMessages, loadMoreMessages, hasMoreMessages, isLoadingMore, toggleReaction, typingUsers } = useChatStore();
   const { user } = useAuthStore();
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
+  const firstUnreadIdRef = useRef(null);
 
   const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
@@ -55,6 +68,20 @@ export default function MessageList({ channelId }) {
   // Nhóm các tin nhắn theo channelId để hiển thị đúng
   const channelMessages = messages.filter(m => m.channel_id === channelId);
 
+  // Xác định tin nhắn đầu tiên chưa đọc (tin nhắn của người khác sau lần mở cuối)
+  // Đơn giản: mark tin nhắn chưa đọc nếu là lần đầu tiên lấy messages (chỉ show divider 1 lần)
+  const unreadStartIndex = (() => {
+    // Tìm vị trí tin nhắn đầu tiên chưa đọc: tin của người khác ở cuối danh sách
+    for (let i = channelMessages.length - 1; i >= 0; i--) {
+      if (channelMessages[i].user_id !== user?.id) {
+        // chỉ hiển thị nếu là tin nhắn trong 10 phút qua (tượng trưng cho "mới")
+        const age = Date.now() - new Date(channelMessages[i].created_at).getTime();
+        if (age < 10 * 60 * 1000 && i > 0) return i;
+      }
+    }
+    return -1;
+  })();
+
   return (
     <div 
       ref={containerRef}
@@ -81,17 +108,47 @@ export default function MessageList({ channelId }) {
           const showHeader = index === 0 || channelMessages[index - 1].user_id !== msg.user_id || 
             (new Date(msg.created_at).getTime() - new Date(channelMessages[index - 1].created_at).getTime() > 300000);
 
+          // Kiểm tra xem có cần hiển thị Day Divider không
+          const currentDate = new Date(msg.created_at).toDateString();
+          const prevDate = index > 0 ? new Date(channelMessages[index - 1].created_at).toDateString() : null;
+          const showDayDivider = index === 0 || currentDate !== prevDate;
+
+          // Unread divider
+          const showUnreadDivider = index === unreadStartIndex;
+
           return (
+            <div key={msg.id || index}>
+              {/* Day Divider */}
+              {showDayDivider && (
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-xs font-semibold text-textMuted px-2 py-0.5 bg-surface/60 rounded-full border border-white/5">
+                    {formatDateLabel(msg.created_at)}
+                  </span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+              )}
+
+              {/* Unread Divider */}
+              {showUnreadDivider && (
+                <div className="flex items-center gap-3 my-3">
+                  <div className="flex-1 h-px bg-red-500/40" />
+                  <span className="text-xs font-semibold text-red-400 px-2 py-0.5 bg-red-500/10 rounded-full border border-red-500/20">
+                    Mới
+                  </span>
+                  <div className="flex-1 h-px bg-red-500/40" />
+                </div>
+              )}
+
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
-              key={msg.id || index} 
-              className={`flex group ${showHeader ? 'mt-4' : 'mt-1'} relative ${isMine ? 'flex-row-reverse' : ''}`}
+              className={`flex group ${showHeader ? 'mt-2' : 'mt-0.5'} relative ${isMine ? 'flex-row-reverse' : ''}`}
               onMouseEnter={() => setHoveredMessageId(msg.id)}
               onMouseLeave={() => setHoveredMessageId(null)}
             >
-              {/* Emoji Picker Menu */}
+              {/* Emoji + Reply hover actions */}
               {hoveredMessageId === msg.id && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -107,8 +164,18 @@ export default function MessageList({ channelId }) {
                       {emoji}
                     </button>
                   ))}
+                  {/* Nút Reply */}
+                  <div className="w-px bg-white/20 mx-0.5" />
+                  <button
+                    onClick={() => onReply && onReply(msg)}
+                    className="hover:bg-white/10 p-1 rounded-lg transition-colors text-textMuted hover:text-white"
+                    title="Trả lời"
+                  >
+                    <Reply className="w-4 h-4" />
+                  </button>
                 </motion.div>
               )}
+
 
               <div className={`flex-shrink-0 w-10 ${isMine ? 'ml-3' : 'mr-3'}`}>
                 {showHeader ? (

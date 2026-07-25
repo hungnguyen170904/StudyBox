@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useRoomStore } from '../store/roomStore';
 import { useFriendStore } from '../store/friendStore';
 import { useChatStore } from '../store/chatStore';
-import { LogOut, Plus, Users, Compass, User, MessageCircle } from 'lucide-react';
+import { LogOut, Plus, Users, Compass, User, MessageCircle, BookOpen, Flame, CheckSquare, Hash } from 'lucide-react';
 import FriendList from '../components/Friends/FriendList';
 import DirectMessage from '../components/Friends/DirectMessage';
 import ProfileSettings from '../components/ProfileSettings';
@@ -31,6 +31,10 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { fetchNotifications, listenSocketEvents, unreadCount } = useNotificationStore();
+
+  // Thống kê nhanh
+  const onlineFriendsCount = friends.filter(f => onlineUsers.includes(f.id || f.friendship_id)).length;
+  const myRooms = rooms.filter(r => r.is_member);
 
   useEffect(() => {
     fetchFriends();
@@ -187,7 +191,40 @@ export default function Home() {
               <Compass className="w-5 h-5 text-textMuted" /> Khám phá phòng học
             </header>
             
-            <div className="p-6 max-w-5xl mx-auto flex flex-col md:flex-row gap-8">
+            <div className="p-6 max-w-5xl mx-auto flex flex-col gap-8">
+
+              {/* Thống kê nhanh */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="glass-panel p-4 rounded-xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                    <Hash className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{rooms.length}</p>
+                    <p className="text-xs text-textMuted">Phòng học</p>
+                  </div>
+                </div>
+                <div className="glass-panel p-4 rounded-xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{onlineFriendsCount}</p>
+                    <p className="text-xs text-textMuted">Bạn online</p>
+                  </div>
+                </div>
+                <div className="glass-panel p-4 rounded-xl flex items-center gap-4 col-span-2 sm:col-span-1">
+                  <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center shrink-0">
+                    <Bell className="w-5 h-5 text-secondary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{unreadCount}</p>
+                    <p className="text-xs text-textMuted">Thông báo mới</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-8">
               <div className="w-full md:w-1/3">
                 <div className="glass-panel p-6 rounded-xl">
                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2 drop-shadow-sm">
@@ -196,6 +233,7 @@ export default function Home() {
                   </h2>
                   <form onSubmit={handleCreateRoom}>
                     <input
+                      id="room-name-input"
                       type="text"
                       placeholder="Tên phòng (VD: Nhóm học Toán)"
                       className="w-full glass-input rounded-lg px-4 py-2.5 mb-4 text-sm"
@@ -278,9 +316,25 @@ export default function Home() {
                     ))}
                   </motion.div>
                 ) : (
-                  <div className="text-center p-12 border-2 border-dashed border-white/20 rounded-xl text-white/60 glass-panel">
-                    Chưa có phòng nào. Hãy là người đầu tiên tạo phòng!
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center py-16 border-2 border-dashed border-white/10 rounded-2xl glass-panel flex flex-col items-center"
+                  >
+                    <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5">
+                      <BookOpen className="w-10 h-10 text-primary/60" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-2">Chưa có phòng nào!</h3>
+                    <p className="text-sm text-textMuted mb-6 max-w-xs">Tạo phòng học đầu tiên hoặc nhập mã mời để tham gia cùng bạn bè.</p>
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => document.getElementById('room-name-input')?.focus()}
+                      className="px-6 py-2.5 bg-primary text-white rounded-xl font-semibold shadow-[0_0_20px_rgba(139,92,246,0.4)] flex items-center gap-2 text-sm"
+                    >
+                      <Plus className="w-4 h-4" /> Tạo phòng ngay
+                    </motion.button>
+                  </motion.div>
                 )}
               </div>
             </div>

@@ -1,23 +1,25 @@
 import { useState, useRef } from 'react';
 import { useChatStore } from '../../store/chatStore';
-import { Send, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Send, Image as ImageIcon, Loader2, X, Reply } from 'lucide-react';
 
-export default function MessageInput({ channelId }) {
+export default function MessageInput({ channelId, replyTo, onCancelReply }) {
   const [content, setContent] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const { sendMessage, sendTyping, sendStopTyping, uploadFile } = useChatStore();
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
 
   const handleSend = (e) => {
     e.preventDefault();
     if (!content.trim()) return;
     
-    sendMessage(channelId, content);
+    sendMessage(channelId, content, 'text', replyTo?.id);
     setContent('');
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
+    if (onCancelReply) onCancelReply();
   };
 
   const handleChange = (e) => {
@@ -60,8 +62,30 @@ export default function MessageInput({ channelId }) {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape' && replyTo) {
+      onCancelReply?.();
+    }
+  };
+
   return (
-    <div className="p-4 shrink-0 bg-transparent">
+    <div className="px-4 pb-4 shrink-0 bg-transparent">
+      {/* Reply Preview Bar */}
+      {replyTo && (
+        <div className="flex items-center gap-2 bg-surface/60 border border-white/10 rounded-t-xl px-4 py-2 mb-1 text-sm">
+          <Reply className="w-4 h-4 text-primary shrink-0" />
+          <span className="text-textMuted">Đang trả lời</span>
+          <span className="font-semibold text-white truncate">{replyTo.display_name || replyTo.username}</span>
+          <span className="text-textMuted truncate flex-1">: {replyTo.content?.slice(0, 60)}{replyTo.content?.length > 60 ? '…' : ''}</span>
+          <button
+            onClick={onCancelReply}
+            className="ml-auto shrink-0 p-1 text-textMuted hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSend} className="relative flex items-center">
         <input 
           type="file" 
@@ -81,17 +105,19 @@ export default function MessageInput({ channelId }) {
         </button>
         
         <input
+          ref={inputRef}
           type="text"
           value={content}
           onChange={handleChange}
-          placeholder="Nhắn tin vào kênh..."
-          className="w-full glass-input rounded-2xl pl-14 pr-12 py-3.5 focus:outline-none transition-all shadow-lg text-white placeholder:text-white/40"
+          onKeyDown={handleKeyDown}
+          placeholder={replyTo ? `Trả lời ${replyTo.display_name || replyTo.username}...` : "Nhắn tin vào kênh..."}
+          className={`w-full glass-input pl-14 pr-12 py-3.5 focus:outline-none transition-all shadow-lg text-white placeholder:text-white/40 ${replyTo ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl'}`}
         />
         
         <button 
           type="submit"
           disabled={!content.trim()}
-          className="absolute right-3 p-2 text-blue-400 hover:text-blue-300 disabled:text-white/30 disabled:cursor-not-allowed transition-colors"
+          className="absolute right-3 p-2 text-primary hover:text-primaryHover disabled:text-white/30 disabled:cursor-not-allowed transition-colors"
         >
           <Send className="w-5 h-5 drop-shadow-sm" />
         </button>
@@ -99,3 +125,4 @@ export default function MessageInput({ channelId }) {
     </div>
   );
 }
+

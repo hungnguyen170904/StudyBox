@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useChatStore } from '../../store/chatStore';
-import { PenTool, Eraser, Trash2, Download } from 'lucide-react';
+import { PenTool, Eraser, Trash2, Download, Undo2, Redo2 } from 'lucide-react';
 
 export default function Whiteboard({ channelId }) {
   const canvasRef = useRef(null);
@@ -10,6 +10,12 @@ export default function Whiteboard({ channelId }) {
   const [color, setColor] = useState('#ffffff');
   const [lineWidth, setLineWidth] = useState(5);
   const [tool, setTool] = useState('pen'); // 'pen' or 'eraser'
+  
+  // Undo/Redo history
+  const historyRef = useRef([]);   // mảng ImageData
+  const redoRef = useRef([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   
   const { getSocket } = useChatStore();
   const socket = getSocket();
@@ -92,11 +98,56 @@ export default function Whiteboard({ channelId }) {
     };
   }, [socket]);
 
+  // Lưu snapshot trước khi bắt đầu nét vẽ
+  const saveSnapshot = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !contextRef.current) return;
+    const imageData = contextRef.current.getImageData(0, 0, canvas.width, canvas.height);
+    historyRef.current.push(imageData);
+    // Giới hạn 30 bước
+    if (historyRef.current.length > 30) historyRef.current.shift();
+    redoRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (historyRef.current.length === 0) return;
+    const canvas = canvasRef.current;
+    // Đẩy trạng thái hiện tại vào redo stack
+    redoRef.current.push(contextRef.current.getImageData(0, 0, canvas.width, canvas.height));
+    const prev = historyRef.current.pop();
+    contextRef.current.putImageData(prev, 0, 0);
+    setCanUndo(historyRef.current.length > 0);
+    setCanRedo(true);
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    if (redoRef.current.length === 0) return;
+    const canvas = canvasRef.current;
+    historyRef.current.push(contextRef.current.getImageData(0, 0, canvas.width, canvas.height));
+    const next = redoRef.current.pop();
+    contextRef.current.putImageData(next, 0, 0);
+    setCanUndo(true);
+    setCanRedo(redoRef.current.length > 0);
+  }, []);
+
+  // Keyboard shortcuts Ctrl+Z / Ctrl+Y
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.ctrlKey && e.key === 'z') { e.preventDefault(); handleUndo(); }
+      if (e.ctrlKey && e.key === 'y') { e.preventDefault(); handleRedo(); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handleUndo, handleRedo]);
+
   // Drawing Handlers
   const lastPosRef = useRef({ x: 0, y: 0 });
 
   const startDrawing = ({ nativeEvent }) => {
     const { offsetX, offsetY } = nativeEvent;
+    saveSnapshot(); // Lưu trước khi vẽ
     
     if (tool === 'eraser') {
       contextRef.current.globalCompositeOperation = 'destination-out';
@@ -150,18 +201,40 @@ export default function Whiteboard({ channelId }) {
       {/* Toolbar */}
       <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 glass-panel px-6 py-3 rounded-full flex items-center gap-6 shadow-xl border border-white/20">
         
+        {/* Undo / Redo */}
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={handleUndo}
+            disabled={!canUndo}
+            className={`p-2 rounded-xl transition-all ${canUndo ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-white/20 cursor-not-allowed'}`}
+            title="Hoàn tác (Ctrl+Z)"
+          >
+            <Undo2 className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={handleRedo}
+            disabled={!canRedo}
+            className={`p-2 rounded-xl transition-all ${canRedo ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-white/20 cursor-not-allowed'}`}
+            title="Làm lại (Ctrl+Y)"
+          >
+            <Redo2 className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="w-px h-6 bg-white/10" />
+
         {/* Tools */}
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setTool('pen')}
-            className={`p-2 rounded-xl transition-all ${tool === 'pen' ? 'bg-blue-500 text-white shadow-md' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
+            className={`p-2 rounded-xl transition-all ${tool === 'pen' ? 'bg-primary text-white shadow-[0_0_12px_rgba(139,92,246,0.4)]' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
             title="Bút vẽ"
           >
             <PenTool className="w-5 h-5" />
           </button>
           <button 
             onClick={() => setTool('eraser')}
-            className={`p-2 rounded-xl transition-all ${tool === 'eraser' ? 'bg-blue-500 text-white shadow-md' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
+            className={`p-2 rounded-xl transition-all ${tool === 'eraser' ? 'bg-primary text-white shadow-[0_0_12px_rgba(139,92,246,0.4)]' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
             title="Cục tẩy"
           >
             <Eraser className="w-5 h-5" />

@@ -3,6 +3,7 @@ import { useVoiceStore } from '../../store/voiceStore';
 import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
 import { Mic, MicOff, PhoneOff, User, Video, VideoOff, MonitorUp, MonitorOff } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 /* ───── Component: Thẻ Audio/Video và Avatar của một User ───── */
 const VoicePeer = ({ stream, username, isLocal, isMuted }) => {
@@ -177,53 +178,63 @@ export default function VoiceChannel({ channelId }) {
       </div>
 
       {/* Control Bar */}
-      <div className="h-24 bg-black/30 backdrop-blur-md flex items-center justify-center gap-4 sm:gap-6 px-4 shrink-0 border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
+      <div className="h-24 bg-black/40 backdrop-blur-xl flex items-center justify-center gap-4 sm:gap-5 px-4 shrink-0 border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.2)]">
         
         {/* Nút Bật/Tắt Mic */}
-        <button 
+        <motion.button 
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
           onClick={toggleMute}
           className={`flex items-center justify-center w-14 h-14 rounded-2xl transition-all shadow-lg backdrop-blur-sm border ${
-            isMuted ? 'bg-red-500/80 hover:bg-red-500 border-red-500/50' : 'bg-white/10 hover:bg-white/20 border-white/20'
+            isMuted ? 'bg-red-500/80 hover:bg-red-500 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-white/10 hover:bg-white/20 border-white/20'
           }`}
           title={isMuted ? 'Bật Mic' : 'Tắt Mic'}
         >
           {isMuted ? <MicOff className="w-6 h-6 text-white" /> : <Mic className="w-6 h-6 text-white" />}
-        </button>
+        </motion.button>
 
         {/* Nút Bật/Tắt Camera */}
-        <button 
+        <motion.button 
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
           onClick={toggleVideo}
           className={`flex items-center justify-center w-14 h-14 rounded-2xl transition-all shadow-lg backdrop-blur-sm border ${
-            !isVideoOn ? 'bg-red-500/80 hover:bg-red-500 border-red-500/50' : 'bg-white/10 hover:bg-white/20 border-white/20'
+            !isVideoOn ? 'bg-red-500/80 hover:bg-red-500 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-white/10 hover:bg-white/20 border-white/20'
           }`}
           title={isVideoOn ? 'Tắt Camera' : 'Bật Camera'}
         >
           {!isVideoOn ? <VideoOff className="w-6 h-6 text-white" /> : <Video className="w-6 h-6 text-white" />}
-        </button>
+        </motion.button>
 
         {/* Nút Chia sẻ màn hình */}
-        <button 
+        <motion.button 
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
           onClick={toggleScreenShare}
           className={`flex items-center justify-center w-14 h-14 rounded-2xl transition-all shadow-lg backdrop-blur-sm border ${
-            !isScreenSharing ? 'bg-white/10 hover:bg-white/20 border-white/20' : 'bg-blue-500/80 hover:bg-blue-500 border-blue-500/50'
+            isScreenSharing ? 'bg-primary/80 hover:bg-primary border-primary/50 shadow-[0_0_20px_rgba(139,92,246,0.3)]' : 'bg-white/10 hover:bg-white/20 border-white/20'
           }`}
           title={isScreenSharing ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình'}
         >
           {!isScreenSharing ? <MonitorUp className="w-6 h-6 text-white" /> : <MonitorOff className="w-6 h-6 text-white" />}
-        </button>
+        </motion.button>
 
-        <div className="w-px h-8 bg-white/20 mx-2"></div>
+        <div className="w-px h-10 bg-white/20 mx-1" />
 
         {/* Nút Rời Kênh */}
-        <button 
+        <motion.button 
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
           onClick={handleDisconnect}
-          className="flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500/80 hover:bg-red-500 border border-red-500/50 transition-all shadow-lg backdrop-blur-sm"
+          className="flex items-center gap-2 px-5 h-14 rounded-2xl bg-red-500/80 hover:bg-red-500 border border-red-500/50 transition-all shadow-lg backdrop-blur-sm shadow-[0_0_20px_rgba(239,68,68,0.2)]"
           title="Ngắt kết nối"
         >
-          <PhoneOff className="w-6 h-6 text-white" />
-        </button>
+          <PhoneOff className="w-5 h-5 text-white" />
+          <span className="text-white text-sm font-semibold hidden sm:block">Rời kênh</span>
+        </motion.button>
 
       </div>
     </div>
   );
 }
+

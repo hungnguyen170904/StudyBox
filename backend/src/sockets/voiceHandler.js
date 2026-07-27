@@ -1,19 +1,19 @@
 const db = require('../db');
-const { isChannelMember } = require('../middlewares/channelMiddleware');
+const { isChannelOfType } = require('../middlewares/channelMiddleware');
 
 module.exports = (io, socket) => {
-  // Lưu trạng thái kênh thoại của socket hiện tại để dễ dọn dẹp
   if (socket.voiceChannelId === undefined) {
     socket.voiceChannelId = null;
   }
 
   socket.on('voice:join', async (channel_id) => {
-    // Kiểm tra membership trước khi cho join voice
-    const isMember = await isChannelMember(channel_id, socket.user.id);
-    if (!isMember) {
-      console.warn(`[Security] ${socket.user.username} cố join voice channel ${channel_id} không hợp lệ.`);
+    // Kiểm tra membership VÀ channel type phải là 'voice'
+    const valid = await isChannelOfType(channel_id, socket.user.id, 'voice');
+    if (!valid) {
+      console.warn(`[Security] ${socket.user.username} cố join voice channel ${channel_id} — không hợp lệ.`);
       return;
     }
+
 
     // Nếu đang ở kênh khác thì rời kênh cũ trước
     if (socket.voiceChannelId && socket.voiceChannelId !== channel_id) {

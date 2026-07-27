@@ -1,5 +1,5 @@
 const redis = require('../redis');
-const { isChannelMember } = require('../middlewares/channelMiddleware');
+const { isChannelOfType } = require('../middlewares/channelMiddleware');
 
 // URL allow-list để phòng chống SSRF
 const ALLOWED_MUSIC_HOSTS = ['youtube.com', 'www.youtube.com', 'youtu.be', 'm.youtube.com', 'soundcloud.com', 'www.soundcloud.com', 'on.soundcloud.com'];
@@ -21,33 +21,42 @@ module.exports = (io, socket, { checkIsOwner }) => {
   socket.on('music:add', async (data) => {
     let { channel_id, url, title } = data;
 
-    // Kiểm tra thành viên channel
-    const isMember = await isChannelMember(channel_id, socket.user.id);
-    if (!isMember) {
-      console.warn(`[Security] ${socket.user.username} cố thêm nhạc vào channel ${channel_id} không hợp lệ.`);
-      return;
-    }
-
-    // Resolve SoundCloud short link trước khi validate
-    if (url.includes('on.soundcloud.com')) {
-      try {
-        const response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
-        url = response.url;
-      } catch (err) {
-        console.log('Lỗi resolve SoundCloud link:', err);
-      }
-    }
-
-    // Kiểm tra URL có trong allow-list không (chống SSRF)
+    // 1. Allow-list TRƯỚC khi làm bất kỳ request nào (phòng SSRF)
     if (!isAllowedMusicUrl(url)) {
-      console.warn(`[Security] ${socket.user.username} cố thêm URL không hợp lệ: ${url}`);
+      // Cho phép SoundCloud short link qua allow-list (hostname = on.soundcloud.com)
+      // nhưng chỉ resolve nếu đã pass allow-list
       socket.emit('music:error', { message: 'Chỉ hỗ trợ link YouTube và SoundCloud.' });
       return;
     }
 
-    if (url.includes('soundcloud.com')) {
-      url = url.split('?')[0];
+    // 2. Resolve SoundCloud short link (on.soundcloud.com) SAU khi hostname đã pass allow-list
+    if (url.includes('on.soundcloud.com')) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(url, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+        clearTimeout(timeout);
+        url = response.url;
+        // Re-validate resolved URL
+        if (!isAllowedMusicUrl(url)) {
+          socket.emit('music:error', { message: 'URL đích không hợp lệ.' });
+          return;
+        }
+      } catch (err) {
+        console.warn('Lỗi resolve SoundCloud link:', err.message);
+        socket.emit('music:error', { message: 'Không thể xử lý link âm nhạc.' });
+        return;
+      }
     }
+
+    // 3. Kiểm tra membership VÀ channel phải type 'music'
+    const valid = await isChannelOfType(channel_id, socket.user.id, 'music');
+    if (!valid) {
+      console.warn(`[Security] ${socket.user.username} cố thêm nhạc vào channel ${channel_id} — không hợp lệ.`);
+      return;
+    }
+
+    if (url.includes('soundcloud.com')) url = url.split('?')[0];
 
     try {
       if (url.includes('soundcloud.com')) {
@@ -162,9 +171,9 @@ module.exports = (io, socket, { checkIsOwner }) => {
 
   // 5. User mới join -> Gửi state hiện tại (kiểm tra membership)
   socket.on('music:request_sync', async (channel_id) => {
-    const isMember = await isChannelMember(channel_id, socket.user.id);
-    if (!isMember) {
-      console.warn(`[Security] ${socket.user.username} cố request music sync từ channel ${channel_id} không hợp lệ.`);
+    const valid = await isChannelOfType(channel_id, socket.user.id, 'music');
+    if (!valid) {
+      console.warn(`[Security] ${socket.user.username} cố request music sync từ channel ${channel_id} — không hợp lệ.`);
       return;
     }
     const stateStr = await redis.get(`music_state:${channel_id}`);

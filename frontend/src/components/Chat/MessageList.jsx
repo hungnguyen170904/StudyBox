@@ -266,6 +266,7 @@ export default function MessageList({ channelId, onReply }) {
                 )}
               </div>
             </motion.div>
+          </div>
           );
         })
       )}

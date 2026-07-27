@@ -21,7 +21,7 @@ export default function Room() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentRoom, fetchRoomDetails, clearCurrentRoom, isLoading } = useRoomStore();
-  const { joinChannel, leaveChannel } = useChatStore();
+  const { joinChannel, leaveChannel, getSocket } = useChatStore();
   const { user } = useAuthStore();
   
   const [activeChannel, setActiveChannel] = useState(null);
@@ -34,10 +34,16 @@ export default function Room() {
   useEffect(() => {
     fetchRoomDetails(id);
 
+    // Join room-level socket room để nhận task/Pomodoro events
+    const socket = getSocket();
+    if (socket) socket.emit('join_room', id);
+
     return () => {
       clearCurrentRoom();
+      if (socket) socket.emit('leave_room', id);
     };
-  }, [id, fetchRoomDetails, clearCurrentRoom]);
+  }, [id, fetchRoomDetails, clearCurrentRoom, getSocket]);
+
 
   useEffect(() => {
     // Tự động chọn kênh text đầu tiên khi load xong phòng

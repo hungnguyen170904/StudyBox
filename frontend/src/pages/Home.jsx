@@ -4,25 +4,23 @@ import { useAuthStore } from '../store/authStore';
 import { useRoomStore } from '../store/roomStore';
 import { useFriendStore } from '../store/friendStore';
 import { useChatStore } from '../store/chatStore';
-import { LogOut, Plus, Users, Compass, User, MessageCircle, BookOpen, Flame, CheckSquare, Hash } from 'lucide-react';
+import { LogOut, Plus, Users, Compass, User, BookOpen, Hash, Bell, Search, Lock } from 'lucide-react';
 import FriendList from '../components/Friends/FriendList';
 import DirectMessage from '../components/Friends/DirectMessage';
 import ProfileSettings from '../components/ProfileSettings';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 import { useNotificationStore } from '../store/notificationStore';
-import { Bell, Search, Lock } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '../lib/utils';
+import { motion } from 'framer-motion';
 
 export default function Home() {
   const { user, logout } = useAuthStore();
   const { rooms, fetchRooms, createRoom, isLoading } = useRoomStore();
   const { friends, fetchFriends } = useFriendStore();
   const { onlineUsers } = useChatStore();
-  
+
   const navigate = useNavigate();
-  
-  const [activeTab, setActiveTab] = useState('rooms'); // 'rooms', 'friends', 'dm_xxx'
+
+  const [activeTab, setActiveTab] = useState('rooms');
   const [newRoomName, setNewRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [activeDmUser, setActiveDmUser] = useState(null);
@@ -30,11 +28,9 @@ export default function Home() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { fetchNotifications, listenSocketEvents, unreadCount } = useNotificationStore();
+  const { fetchNotifications, unreadCount } = useNotificationStore();
 
-  // Thống kê nhanh
   const onlineFriendsCount = friends.filter(f => onlineUsers.includes(f.id || f.friendship_id)).length;
-  const myRooms = rooms.filter(r => r.is_member);
 
   useEffect(() => {
     fetchFriends();
@@ -42,20 +38,16 @@ export default function Home() {
   }, [fetchFriends, fetchNotifications]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchRooms(searchQuery);
-    }, 300);
+    const timer = setTimeout(() => { fetchRooms(searchQuery); }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, fetchRooms]);
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
     if (!newRoomName.trim()) return;
-    
     setIsCreating(true);
     const room = await createRoom(newRoomName);
     setIsCreating(false);
-    
     if (room) {
       setNewRoomName('');
       navigate(`/room/${room.id}`);
@@ -69,11 +61,13 @@ export default function Home() {
 
   return (
     <div className="h-screen bg-transparent flex overflow-hidden text-textMain">
-      
-      {/* Cột trái (Sidebar DM & Friends) */}
+
+      {/* ─── Sidebar trái ─────────────────────────────────────────────── */}
       <div className="w-60 glass-sidebar flex flex-col shrink-0">
+
+        {/* Search trigger */}
         <div className="h-14 flex items-center justify-center border-b border-white/10 shadow-sm px-3">
-          <button 
+          <button
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: 'k', bubbles: true }))}
             className="w-full glass-input text-xs px-3 py-1.5 rounded-full outline-none flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-left"
           >
@@ -83,16 +77,17 @@ export default function Home() {
           </button>
         </div>
 
+        {/* Nav items */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-          <button 
+          <button
             onClick={() => setActiveTab('friends')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${activeTab === 'friends' ? 'bg-surfaceLight/70 text-white' : 'text-textMuted hover:bg-surfaceLight/30 hover:text-white'}`}
           >
             <Users className="w-5 h-5" />
             <span className="font-medium">Bạn bè</span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setActiveTab('rooms')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${activeTab === 'rooms' ? 'bg-surfaceLight/70 text-white' : 'text-textMuted hover:bg-surfaceLight/30 hover:text-white'}`}
           >
@@ -100,14 +95,15 @@ export default function Home() {
             <span className="font-medium">Phòng học</span>
           </button>
 
+          {/* DM list */}
           <div className="mt-4 pt-4 border-t border-surfaceLight/20">
             <h3 className="text-xs font-bold text-textMuted uppercase tracking-wider px-3 mb-2 flex justify-between items-center hover:text-white cursor-pointer">
               Tin nhắn trực tiếp
               <Plus className="w-3 h-3" />
             </h3>
-            
+
             {friends.map(friend => (
-              <button 
+              <button
                 key={friend.friendship_id}
                 onClick={() => handleStartDm(friend)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'dm_' + (friend.id || friend.friendship_id) ? 'bg-surfaceLight/70 text-white' : 'text-textMuted hover:bg-surfaceLight/30 hover:text-white'}`}
@@ -118,10 +114,7 @@ export default function Home() {
                   ) : (
                     <User className="w-5 h-5 text-textMuted" />
                   )}
-                  {/* Hiệu ứng online thực tế qua socket */}
-                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-black/40 ${
-                    onlineUsers.includes(friend.id || friend.friendship_id) ? 'bg-green-500' : 'bg-gray-500'
-                  }`}></div>
+                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-black/40 ${onlineUsers.includes(friend.id || friend.friendship_id) ? 'bg-green-500' : 'bg-gray-500'}`}></div>
                 </div>
                 <div className="flex flex-col truncate text-left w-full">
                   <span className="truncate text-sm">{friend.display_name || friend.username}</span>
@@ -134,9 +127,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* User profile ở đáy sidebar */}
+        {/* User bar */}
         <div className="h-14 bg-black/40 flex items-center px-2 justify-between shrink-0 border-t border-white/10 relative">
-          <div 
+          <div
             onClick={() => setIsProfileOpen(true)}
             className="flex items-center gap-2 hover:bg-white/10 p-1 rounded cursor-pointer transition-colors max-w-[120px]"
           >
@@ -153,9 +146,9 @@ export default function Home() {
               <span className="text-[10px] text-white/50 truncate">@{user?.username}</span>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-1">
-            <button 
+            <button
               onClick={() => setIsNotifOpen(!isNotifOpen)}
               className="relative p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-md transition-colors"
               title="Thông báo"
@@ -165,7 +158,7 @@ export default function Home() {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[#1E1F22]"></span>
               )}
             </button>
-            <button 
+            <button
               onClick={logout}
               className="p-2 text-white/50 hover:text-red-400 hover:bg-white/10 rounded-md transition-colors"
               title="Đăng xuất"
@@ -177,9 +170,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* ─── Main Content ─────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col bg-transparent min-w-0">
-        
+
         {activeTab === 'friends' && (
           <FriendList onStartDm={handleStartDm} />
         )}
@@ -193,7 +186,7 @@ export default function Home() {
             <header className="border-b border-surfaceLight/30 h-14 flex items-center px-6 shadow-sm shrink-0 font-semibold text-textMain gap-2">
               <Compass className="w-5 h-5 text-textMuted" /> Khám phá phòng học
             </header>
-            
+
             <div className="p-6 max-w-5xl mx-auto flex flex-col gap-8">
 
               {/* Thống kê nhanh */}
@@ -227,124 +220,130 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Row: Tạo phòng + Danh sách */}
               <div className="flex flex-col md:flex-row gap-8">
-              <div className="w-full md:w-1/3">
-                <div className="glass-panel p-6 rounded-xl">
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2 drop-shadow-sm">
-                    <Plus className="w-5 h-5 text-white" />
-                    Tạo phòng mới
-                  </h2>
-                  <form onSubmit={handleCreateRoom}>
-                    <input
-                      id="room-name-input"
-                      type="text"
-                      placeholder="Tên phòng (VD: Nhóm học Toán)"
-                      className="w-full glass-input rounded-lg px-4 py-2.5 mb-4 text-sm"
-                      value={newRoomName}
-                      onChange={(e) => setNewRoomName(e.target.value)}
-                    />
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      disabled={isCreating || !newRoomName.trim()}
-                      className="w-full py-2.5 bg-primary/80 hover:bg-primary border border-white/10 text-white rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)] backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    >
-                      {isCreating ? 'Đang tạo...' : 'Tạo phòng'}
-                    </motion.button>
-                  </form>
-                </div>
-              </div>
 
-              <div className="w-full md:w-2/3">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-white drop-shadow-sm flex-1">Phòng cộng đồng</h2>
-                  <div className="relative flex-1 max-w-xs mx-4">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
-                    <input 
-                      type="text"
-                      placeholder="Tìm kiếm phòng..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-white/10 border border-white/20 rounded-full py-1.5 pl-9 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors"
-                    />
-                  </div>
-                  <button onClick={() => fetchRooms(searchQuery)} className="text-sm text-white/70 hover:text-white hover:underline font-medium transition-colors shrink-0">Làm mới</button>
-                </div>
-
-                {isLoading ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="glass-panel p-5 rounded-xl animate-pulse">
-                        <div className="h-5 bg-white/10 rounded w-3/4 mb-2"></div>
-                        <div className="h-4 bg-white/5 rounded w-1/2 mb-6"></div>
-                        <div className="flex justify-between">
-                          <div className="h-4 bg-white/10 rounded w-1/4"></div>
-                          <div className="h-6 bg-white/20 rounded w-1/4"></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : rooms.length > 0 ? (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                  >
-                    {rooms.map((room, index) => (
-                      <motion.div 
-                        key={room.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
+                {/* Tạo phòng mới */}
+                <div className="w-full md:w-1/3">
+                  <div className="glass-panel p-6 rounded-xl">
+                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <Plus className="w-5 h-5 text-white" />
+                      Tạo phòng mới
+                    </h2>
+                    <form onSubmit={handleCreateRoom}>
+                      <input
+                        id="room-name-input"
+                        type="text"
+                        placeholder="Tên phòng (VD: Nhóm học Toán)"
+                        className="w-full glass-input rounded-lg px-4 py-2.5 mb-4 text-sm"
+                        value={newRoomName}
+                        onChange={(e) => setNewRoomName(e.target.value)}
+                      />
+                      <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => navigate(`/room/${room.id}`)}
-                        className="glass-panel hover:bg-white/5 p-5 rounded-xl cursor-pointer transition-colors group flex flex-col relative overflow-hidden"
+                        type="submit"
+                        disabled={isCreating || !newRoomName.trim()}
+                        className="w-full py-2.5 bg-primary/80 hover:bg-primary border border-white/10 text-white rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)] backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                        
-                        {!room.is_public && (
-                          <div className="absolute top-3 right-3 text-white/40" title="Phòng riêng tư">
-                            <Lock className="w-4 h-4" />
-                          </div>
-                        )}
-                        <h3 className="font-bold text-white mb-1 group-hover:text-primary transition-colors pr-6 truncate z-10">{room.name}</h3>
-                        <p className="text-sm text-textMuted z-10">Tạo bởi: {room.owner_name}</p>
-                        <div className="mt-4 flex justify-between items-center text-xs font-semibold z-10">
-                          <span className="text-white/40">{new Date(room.created_at).toLocaleDateString('vi-VN')}</span>
-                          <span className="bg-white/10 text-white px-3 py-1.5 rounded-lg group-hover:bg-primary group-hover:text-white transition-all shadow-md">Tham gia</span>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-center py-16 border-2 border-dashed border-white/10 rounded-2xl glass-panel flex flex-col items-center"
-                  >
-                    <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5">
-                      <BookOpen className="w-10 h-10 text-primary/60" />
+                        {isCreating ? 'Đang tạo...' : 'Tạo phòng'}
+                      </motion.button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Danh sách phòng */}
+                <div className="w-full md:w-2/3">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-white drop-shadow-sm flex-1">Phòng cộng đồng</h2>
+                    <div className="relative flex-1 max-w-xs mx-4">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm phòng..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded-full py-1.5 pl-9 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:border-white/40 transition-colors"
+                      />
                     </div>
-                    <h3 className="text-lg font-bold text-white mb-2">Chưa có phòng nào!</h3>
-                    <p className="text-sm text-textMuted mb-6 max-w-xs">Tạo phòng học đầu tiên hoặc nhập mã mời để tham gia cùng bạn bè.</p>
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => document.getElementById('room-name-input')?.focus()}
-                      className="px-6 py-2.5 bg-primary text-white rounded-xl font-semibold shadow-[0_0_20px_rgba(139,92,246,0.4)] flex items-center gap-2 text-sm"
+                    <button onClick={() => fetchRooms(searchQuery)} className="text-sm text-white/70 hover:text-white hover:underline font-medium transition-colors shrink-0">Làm mới</button>
+                  </div>
+
+                  {isLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="glass-panel p-5 rounded-xl animate-pulse">
+                          <div className="h-5 bg-white/10 rounded w-3/4 mb-2"></div>
+                          <div className="h-4 bg-white/5 rounded w-1/2 mb-6"></div>
+                          <div className="flex justify-between">
+                            <div className="h-4 bg-white/10 rounded w-1/4"></div>
+                            <div className="h-6 bg-white/20 rounded w-1/4"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : rooms.length > 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                     >
-                      <Plus className="w-4 h-4" /> Tạo phòng ngay
-                    </motion.button>
-                  </motion.div>
-                )}
-              </div>
-            </div>
+                      {rooms.map((room, index) => (
+                        <motion.div
+                          key={room.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => navigate(`/room/${room.id}`)}
+                          className="glass-panel hover:bg-white/5 p-5 rounded-xl cursor-pointer transition-colors group flex flex-col relative overflow-hidden"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                          {!room.is_public && (
+                            <div className="absolute top-3 right-3 text-white/40" title="Phòng riêng tư">
+                              <Lock className="w-4 h-4" />
+                            </div>
+                          )}
+                          <h3 className="font-bold text-white mb-1 group-hover:text-primary transition-colors pr-6 truncate z-10">{room.name}</h3>
+                          <p className="text-sm text-textMuted z-10">Tạo bởi: {room.owner_name}</p>
+                          <div className="mt-4 flex justify-between items-center text-xs font-semibold z-10">
+                            <span className="text-white/40">{new Date(room.created_at).toLocaleDateString('vi-VN')}</span>
+                            <span className="bg-white/10 text-white px-3 py-1.5 rounded-lg group-hover:bg-primary group-hover:text-white transition-all shadow-md">Tham gia</span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-center py-16 border-2 border-dashed border-white/10 rounded-2xl glass-panel flex flex-col items-center"
+                    >
+                      <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5">
+                        <BookOpen className="w-10 h-10 text-primary/60" />
+                      </div>
+                      <h3 className="text-lg font-bold text-white mb-2">Chưa có phòng nào!</h3>
+                      <p className="text-sm text-textMuted mb-6 max-w-xs">Tạo phòng học đầu tiên hoặc nhập mã mời để tham gia cùng bạn bè.</p>
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => document.getElementById('room-name-input')?.focus()}
+                        className="px-6 py-2.5 bg-primary text-white rounded-xl font-semibold shadow-[0_0_20px_rgba(139,92,246,0.4)] flex items-center gap-2 text-sm"
+                      >
+                        <Plus className="w-4 h-4" /> Tạo phòng ngay
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </div>
+
+              </div>{/* end flex-row */}
+            </div>{/* end p-6 */}
           </div>
-        )}
-      </div>
-      
+        )}{/* end rooms tab */}
+
+      </div>{/* end main content */}
+
       <ProfileSettings isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </div>
   );

@@ -62,6 +62,29 @@ module.exports = {
         socket.leave(`channel_${channelId}`);
       });
 
+      // ─── Room-level join (cho task/Pomodoro events) ───────────────────
+      socket.on('join_room', async (roomId) => {
+        try {
+          const result = await db.query(
+            'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
+            [roomId, socket.user.id]
+          );
+          if (result.rows.length === 0) {
+            console.warn(`join_room denied: ${socket.user.username} not in room ${roomId}`);
+            return;
+          }
+          socket.join(`room_${roomId}`);
+          console.log(`${socket.user.username} joined room_${roomId}`);
+        } catch (err) {
+          console.error('join_room error:', err.message);
+        }
+      });
+
+      socket.on('leave_room', (roomId) => {
+        socket.leave(`room_${roomId}`);
+      });
+
+
       // Hàm phụ trợ dùng chung cho các handlers
       const utils = {
         getUserSockets: (userId) => userSocketsMap.get(userId),

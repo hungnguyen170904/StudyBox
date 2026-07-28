@@ -1,4 +1,5 @@
 const db = require('../db');
+const fs = require('fs');
 const { isChannelMember } = require('../middlewares/channelMiddleware');
 
 // Lấy lịch sử tin nhắn của một channel (Phân trang với cursor)
@@ -136,6 +137,86 @@ const uploadFile = async (req, res) => {
     const userResult = await db.query('SELECT username, display_name, avatar_url FROM users WHERE id = $1', [userId]);
     const userInfo = userResult.rows[0];
 
+    // Kiểm tra xem user đã thả reaction này chưa
+    const check = await db.query(
+      'SELECT id FROM message_reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3',
+      [messageId, userId, emoji]
+    );
+
+    let isAdded = false;
+
+    if (check.rows.length > 0) {
+      // Nếu đã có thì huỷ
+      await db.query('DELETE FROM message_reactions WHERE id = $1', [check.rows[0].id]);
+      isAdded = false;
+    } else {
+      // Nếu chưa có thì thêm
+      await db.query(
+        'INSERT INTO message_reactions (message_id, user_id, emoji) VALUES ($1, $2, $3)',
+        [messageId, userId, emoji]
+      );
+      isAdded = true;
+    }
+
+    // Lấy channel_id để phát socket đúng phòng
+    const msgRes = await db.query('SELECT channel_id FROM messages WHERE id = $1', [messageId]);
+    if (msgRes.rows.length > 0) {
+      const channelId = msgRes.rows[0].channel_id;
+      const io = require('../sockets').getIo();
+      if (io) {
+        io.to(`channel_${channelId}`).emit('message_reaction_update', {
+          messageId,
+          userId,
+          emoji,
+          isAdded
+        });
+      }
+    }
+
+    res.status(200).json({ success: true, isAdded });
+  } catch (error) {
+    console.error('Lỗi toggleReaction:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// Upload ảnh/file trong chat
+const uploadFile = async (req, res) => {
+  try {
+    const { id } = req.params; // channelId
+    const userId = req.user.id;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'Không có file được tải lên' });
+    }
+
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/chat/${req.file.filename}`;
+    
+    // Kiểm tra loại file để set message_type
+    const mimeType = req.file.mimetype;
+    let messageType = 'file'; // Note: Cần cẩn thận với enum message_type của DB hiện có là 'text', 'image', 'video', 'system'. 
+    // Chúng ta sẽ dùng 'image' cho hình ảnh, hoặc 'text' chứa URL nếu ko có 'file' type.
+    if (mimeType.startsWith('image/')) {
+      messageType = 'image';
+    } else if (mimeType.startsWith('video/')) {
+      messageType = 'video';
+    } else {
+      // Vì DB chưa có kiểu 'file' trong enum message_type, tạm lưu type là text và chèn URL vào content
+      // Hoặc ta có thể dùng bảng attachments, nhưng để nhanh ta lưu vào content: "[FILE]" + URL
+      messageType = 'text';
+    }
+
+    const content = messageType === 'text' ? `[FILE]: ${req.file.originalname}|${fileUrl}` : fileUrl;
+
+    const result = await db.query(
+      'INSERT INTO messages (channel_id, user_id, content, type) VALUES ($1, $2, $3, $4::message_type) RETURNING *',
+      [id, userId, content, messageType]
+    );
+    const newMessage = result.rows[0];
+
+    const userResult = await db.query('SELECT username, display_name, avatar_url FROM users WHERE id = $1', [userId]);
+    const userInfo = userResult.rows[0];
+
     const fullMessage = {
       ...newMessage,
       username: userInfo.username,
@@ -152,6 +233,9 @@ const uploadFile = async (req, res) => {
 
     res.status(201).json({ success: true, message: fullMessage });
   } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     console.error('Lỗi uploadFile chat:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }

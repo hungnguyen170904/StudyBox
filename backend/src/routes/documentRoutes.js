@@ -25,9 +25,32 @@ const storage = multer.diskStorage({
   }
 });
 
+// File filter
+const fileFilter = (req, file, cb) => {
+  const allowedMimes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+    'image/jpeg',
+    'image/png'
+  ];
+
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Loại file không được hỗ trợ. Chỉ cho phép tài liệu, bảng tính, bài thuyết trình hoặc hình ảnh.'));
+  }
+};
+
 // Giới hạn 20MB
 const upload = multer({ 
   storage: storage,
+  fileFilter: fileFilter,
   limits: { fileSize: 20 * 1024 * 1024 }
 });
 

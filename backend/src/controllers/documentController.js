@@ -49,6 +49,9 @@ const uploadDocument = async (req, res) => {
       document: result.rows[0] 
     });
   } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     console.error('Lỗi uploadDocument:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }

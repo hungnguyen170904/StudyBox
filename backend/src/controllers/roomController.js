@@ -1,5 +1,6 @@
 const db = require('../db');
 const redis = require('../redis');
+const crypto = require('crypto');
 
 // Lấy danh sách room public (Hỗ trợ search) và các phòng user đang tham gia
 const getRooms = async (req, res) => {
@@ -53,37 +54,45 @@ const createRoom = async (req, res) => {
       return res.status(400).json({ message: 'Tên phòng không được để trống' });
     }
 
-    // Dùng transaction để tạo Room -> tạo mặc định 3 Channel -> thêm Owner vào room_members
-    await db.query('BEGIN');
+    const client = await db.pool.connect();
+    try {
+      // Dùng transaction để tạo Room -> tạo mặc định 3 Channel -> thêm Owner vào room_members
+      await client.query('BEGIN');
 
-    // 1. Tạo room
-    const roomResult = await db.query(
-      'INSERT INTO rooms (name, owner_id, is_public) VALUES ($1, $2, $3) RETURNING *',
-      [name, userId, is_public ?? true]
-    );
-    const room = roomResult.rows[0];
+      // 1. Tạo room
+      const roomResult = await client.query(
+        'INSERT INTO rooms (name, owner_id, is_public) VALUES ($1, $2, $3) RETURNING *',
+        [name, userId, is_public ?? true]
+      );
+      const room = roomResult.rows[0];
 
-    // 2. Thêm owner vào room_members
-    await db.query(
-      'INSERT INTO room_members (room_id, user_id, role) VALUES ($1, $2, $3::room_role)',
-      [room.id, userId, 'owner']
-    );
+      // 2. Thêm owner vào room_members
+      await client.query(
+        'INSERT INTO room_members (room_id, user_id, role) VALUES ($1, $2, $3::room_role)',
+        [room.id, userId, 'owner']
+      );
 
-    // 3. Tạo các channel mặc định (general-text, music, voice, whiteboard, document)
-    await db.query(
-      `INSERT INTO channels (room_id, name, type) VALUES 
-       ($1, 'chung', 'text'::channel_type),
-       ($1, 'nhạc', 'music'::channel_type),
-       ($1, 'đàm thoại', 'voice'::channel_type),
-       ($1, 'bảng trắng', 'whiteboard'::channel_type),
-       ($1, 'tài liệu', 'document'::channel_type)`,
-      [room.id]
-    );
+      // 3. Tạo các channel mặc định (general-text, music, voice, whiteboard, document)
+      await client.query(
+        `INSERT INTO channels (room_id, name, type) VALUES 
+         ($1, 'chung', 'text'::channel_type),
+         ($1, 'nhạc', 'music'::channel_type),
+         ($1, 'đàm thoại', 'voice'::channel_type),
+         ($1, 'bảng trắng', 'whiteboard'::channel_type),
+         ($1, 'tài liệu', 'document'::channel_type)`,
+        [room.id]
+      );
 
-    await db.query('COMMIT');
-    res.status(201).json({ message: 'Tạo phòng thành công', room });
+      await client.query('COMMIT');
+      res.status(201).json({ message: 'Tạo phòng thành công', room });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Lỗi createRoom transaction:', error);
+      res.status(500).json({ message: 'Lỗi server' });
+    } finally {
+      client.release();
+    }
   } catch (error) {
-    await db.query('ROLLBACK');
     console.error('Lỗi createRoom:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
@@ -123,6 +132,7 @@ const getRoomById = async (req, res) => {
 const generateInviteCode = async (req, res) => {
   try {
     const { id } = req.params;
+    const { expiresIn, maxUses } = req.body;
     const userId = req.user.id;
 
     // Kiểm tra quyền (chỉ owner mới được tạo link trong bản này)
@@ -135,12 +145,17 @@ const generateInviteCode = async (req, res) => {
       return res.status(403).json({ message: 'Bạn không có quyền tạo mã mời' });
     }
 
-    // Tạo mã ngẫu nhiên 6 ký tự
-    const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Tạo mã ngẫu nhiên 8 ký tự an toàn
+    const inviteCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    let expiresAt = null;
+    if (expiresIn) { // expiresIn tính bằng phút
+      expiresAt = new Date(Date.now() + expiresIn * 60000);
+    }
 
     const result = await db.query(
-      'UPDATE rooms SET invite_code = $1 WHERE id = $2 RETURNING invite_code',
-      [inviteCode, id]
+      'UPDATE rooms SET invite_code = $1, invite_expires_at = $2, invite_max_uses = $3, invite_uses = 0 WHERE id = $4 RETURNING invite_code',
+      [inviteCode, expiresAt, maxUses || null, id]
     );
 
     res.status(200).json({ invite_code: result.rows[0].invite_code });
@@ -156,7 +171,7 @@ const getRoomByInviteCode = async (req, res) => {
     const { code } = req.params;
     
     const result = await db.query(
-      'SELECT id, name, owner_id FROM rooms WHERE invite_code = $1',
+      'SELECT id, name, owner_id, invite_expires_at, invite_max_uses, invite_uses FROM rooms WHERE invite_code = $1',
       [code]
     );
 
@@ -164,7 +179,15 @@ const getRoomByInviteCode = async (req, res) => {
       return res.status(404).json({ message: 'Mã mời không hợp lệ hoặc đã hết hạn' });
     }
 
-    res.status(200).json({ room: result.rows[0] });
+    const room = result.rows[0];
+    if (room.invite_expires_at && new Date(room.invite_expires_at) < new Date()) {
+      return res.status(403).json({ message: 'Mã mời đã hết hạn' });
+    }
+    if (room.invite_max_uses && room.invite_uses >= room.invite_max_uses) {
+      return res.status(403).json({ message: 'Mã mời đã hết lượt sử dụng' });
+    }
+
+    res.status(200).json({ room: { id: room.id, name: room.name, owner_id: room.owner_id } });
   } catch (error) {
     console.error('Lỗi getRoomByInviteCode:', error);
     res.status(500).json({ message: 'Lỗi server' });
@@ -178,11 +201,19 @@ const joinRoomByInvite = async (req, res) => {
     const userId = req.user.id;
 
     // Tìm phòng bằng mã mời
-    const roomRes = await db.query('SELECT id FROM rooms WHERE invite_code = $1', [code]);
+    const roomRes = await db.query('SELECT id, invite_expires_at, invite_max_uses, invite_uses FROM rooms WHERE invite_code = $1', [code]);
     if (roomRes.rows.length === 0) {
       return res.status(404).json({ message: 'Mã mời không hợp lệ' });
     }
-    const roomId = roomRes.rows[0].id;
+    const room = roomRes.rows[0];
+    const roomId = room.id;
+
+    if (room.invite_expires_at && new Date(room.invite_expires_at) < new Date()) {
+      return res.status(403).json({ message: 'Mã mời đã hết hạn' });
+    }
+    if (room.invite_max_uses && room.invite_uses >= room.invite_max_uses) {
+      return res.status(403).json({ message: 'Mã mời đã hết lượt sử dụng' });
+    }
 
     // Kiểm tra xem user đã ở trong phòng chưa
     const memberCheck = await db.query(
@@ -198,6 +229,12 @@ const joinRoomByInvite = async (req, res) => {
     await db.query(
       'INSERT INTO room_members (room_id, user_id, role) VALUES ($1, $2, $3)',
       [roomId, userId, 'member']
+    );
+
+    // Tăng số lượt sử dụng mã mời
+    await db.query(
+      'UPDATE rooms SET invite_uses = invite_uses + 1 WHERE id = $1',
+      [roomId]
     );
 
     res.status(200).json({ message: 'Tham gia phòng thành công', roomId });

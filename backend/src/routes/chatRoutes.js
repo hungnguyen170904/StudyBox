@@ -23,13 +23,38 @@ const storage = multer.diskStorage({
   }
 });
 
+// File filter cho chat
+const fileFilter = (req, file, cb) => {
+  const allowedMimes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'video/mp4',
+    'video/webm'
+  ];
+
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Loại file không được hỗ trợ.'));
+  }
+};
+
 const upload = multer({ 
   storage: storage,
+  fileFilter: fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 } // Giới hạn 10MB
 });
 
 router.get('/:id/messages', verifyToken, requireChannelMembership('id'), chatController.getMessages);
 router.post('/messages/:messageId/reactions', verifyToken, chatController.toggleReaction);
 router.post('/:id/messages/file', verifyToken, requireChannelMembership('id'), upload.single('file'), chatController.uploadFile);
-
 module.exports = router;

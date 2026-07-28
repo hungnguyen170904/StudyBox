@@ -119,6 +119,10 @@ app.get('/', (req, res) => {
 const socketHandler = require('./src/sockets');
 socketHandler.init(io);
 
+// Middleware xử lý lỗi tập trung (Nên đặt ở cuối cùng)
+const { errorHandler } = require('./src/middlewares/errorHandler');
+app.use(errorHandler);
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

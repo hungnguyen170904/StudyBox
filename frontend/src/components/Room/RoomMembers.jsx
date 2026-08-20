@@ -5,6 +5,17 @@ import { useChatStore } from '../../store/chatStore';
 import { Shield, User, Crown, UserMinus, LogOut, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+// Helper: Generate a deterministic gradient from username
+function avatarGradient(username = '') {
+  const colors = [
+    ['#8B5CF6','#6366F1'], ['#06B6D4','#0EA5E9'], ['#10B981','#059669'],
+    ['#F59E0B','#EF4444'], ['#EC4899','#8B5CF6'], ['#F97316','#EAB308'],
+  ];
+  const idx = username.charCodeAt(0) % colors.length;
+  const [a, b] = colors[idx];
+  return `linear-gradient(135deg, ${a}, ${b})`;
+}
+
 export default function RoomMembers({ roomId }) {
   const { currentRoom, kickMember, changeMemberRole, leaveRoom } = useRoomStore();
   const { user: currentUser } = useAuthStore();
@@ -55,11 +66,14 @@ export default function RoomMembers({ roomId }) {
     return (
       <div key={member.id} className="group flex items-center justify-between p-2 hover:bg-white/10 rounded-xl transition-all cursor-default">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="relative w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+          <div 
+            className="relative w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm"
+            style={{ background: member.avatar_url ? 'transparent' : avatarGradient(member.username) }}
+          >
             {member.avatar_url ? (
-              <img src={member.avatar_url} alt={member.display_name || member.username} className="w-full h-full object-cover" />
+              <img src={member.avatar_url} alt={member.display_name || member.username} className="w-full h-full rounded-full object-cover" />
             ) : (
-              <User className="w-5 h-5 text-white/70" />
+              <span className="text-white font-bold text-sm">{(member.username || '?')[0].toUpperCase()}</span>
             )}
             
             <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-black/40 ${

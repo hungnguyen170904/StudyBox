@@ -86,7 +86,7 @@ export default function MessageInput({ channelId, replyTo, onCancelReply }) {
         </div>
       )}
 
-      <form onSubmit={handleSend} className="relative flex items-center">
+      <form onSubmit={handleSend} className="relative flex items-center group">
         <input 
           type="file" 
           ref={fileInputRef} 
@@ -94,16 +94,19 @@ export default function MessageInput({ channelId, replyTo, onCancelReply }) {
           className="hidden" 
           accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar" 
         />
+        
+        {/* Attachment Button */}
         <button 
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="absolute left-3 p-2 text-white/50 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-sm disabled:opacity-50"
-          title="Gửi ảnh/video/tài liệu"
+          className="absolute left-2.5 p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-xl transition-all disabled:opacity-50 z-10"
+          title="Đính kèm file"
         >
-          {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5 drop-shadow-sm" />}
+          {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
         </button>
         
+        {/* Input Field */}
         <input
           ref={inputRef}
           type="text"
@@ -111,15 +114,17 @@ export default function MessageInput({ channelId, replyTo, onCancelReply }) {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder={replyTo ? `Trả lời ${replyTo.display_name || replyTo.username}...` : "Nhắn tin vào kênh..."}
-          className={`w-full glass-input pl-14 pr-12 py-3.5 focus:outline-none transition-all shadow-lg text-white placeholder:text-white/40 ${replyTo ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl'}`}
+          className={`w-full bg-[#1c2030]/80 backdrop-blur-xl border border-white/10 focus:border-primary/50 focus:bg-[#1e2335] outline-none transition-all duration-300 pl-14 pr-12 py-3.5 text-sm text-white placeholder:text-white/30 focus:shadow-[0_0_20px_rgba(139,92,246,0.15)] focus:ring-1 focus:ring-primary/30 ${replyTo ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl shadow-sm'}`}
         />
         
+        {/* Send Button */}
         <button 
           type="submit"
           disabled={!content.trim()}
-          className="absolute right-3 p-2 text-primary hover:text-primaryHover disabled:text-white/30 disabled:cursor-not-allowed transition-colors"
+          className="absolute right-2 p-2 rounded-xl text-primary hover:text-white hover:bg-primary/80 disabled:text-white/20 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all z-10 flex items-center justify-center"
+          title="Gửi tin nhắn"
         >
-          <Send className="w-5 h-5 drop-shadow-sm" />
+          <Send className="w-4 h-4 ml-0.5" />
         </button>
       </form>
     </div>

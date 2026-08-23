@@ -196,10 +196,10 @@ export default function Whiteboard({ channelId }) {
   return (
     <div className="flex-1 relative w-full h-full bg-transparent overflow-hidden flex flex-col">
       {/* Nền phụ nếu cần (tùy chọn) */}
-      <div className="absolute inset-0 bg-white/5 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-white/5 pointer-events-none backdrop-blur-[2px]"></div>
       
       {/* Toolbar */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 glass-panel px-6 py-3 rounded-full flex items-center gap-6 shadow-xl border border-white/20">
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 glass-panel px-6 py-3 rounded-full flex items-center gap-6 shadow-2xl border border-white/20 backdrop-blur-xl">
         
         {/* Undo / Redo */}
         <div className="flex items-center gap-1">

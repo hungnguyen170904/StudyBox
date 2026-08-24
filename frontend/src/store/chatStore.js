@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { io } from 'socket.io-client';
 import { fetchApi } from '../lib/api';
+import { useAuthStore } from './authStore';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 let socket = null;
@@ -60,14 +61,12 @@ export const useChatStore = create((set, get) => ({
         set((state) => ({ messages: [...state.messages, message] }));
         
         // Phát âm thanh nếu tin nhắn không phải của mình
-        import('./authStore').then(({ useAuthStore }) => {
-          const currentUser = useAuthStore.getState().user;
-          if (currentUser && message.user_id !== currentUser.id) {
-            const audio = new Audio('/sounds/ting.ogg');
-            audio.volume = 0.5;
-            audio.play().catch(err => console.log('Autoplay prevented:', err));
-          }
-        });
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser && message.user_id !== currentUser.id) {
+          const audio = new Audio('/sounds/ting.ogg');
+          audio.volume = 0.5;
+          audio.play().catch(err => console.log('Autoplay prevented:', err));
+        }
       });
 
       socket.on('dm:receive', async (message) => {

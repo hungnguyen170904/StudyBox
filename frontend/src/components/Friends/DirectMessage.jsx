@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useDmStore } from '../../store/dmStore';
 import { useAuthStore } from '../../store/authStore';
-import { Send, User } from 'lucide-react';
+import { Send, User, Menu } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
-export default function DirectMessage({ friend }) {
+export default function DirectMessage({ friend, onOpenMenu }) {
   const { messages, setActiveFriend, fetchMessages, sendMessage, isLoading } = useDmStore();
   const { user } = useAuthStore();
   const [content, setContent] = useState('');
@@ -35,6 +35,9 @@ export default function DirectMessage({ friend }) {
     <div className="flex-1 flex flex-col h-full bg-black/20 backdrop-blur-sm">
       {/* Header */}
       <div className="h-14 border-b border-white/10 flex items-center px-4 gap-3 shadow-sm shrink-0 bg-black/10 backdrop-blur-sm">
+        <button onClick={onOpenMenu} className="md:hidden p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors">
+          <Menu className="w-5 h-5" />
+        </button>
         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
           {friend.avatar_url ? (
             <img src={friend.avatar_url} alt={friend.display_name || friend.username} className="w-full h-full object-cover" />
@@ -42,7 +45,7 @@ export default function DirectMessage({ friend }) {
             <User className="w-4 h-4 text-white/70" />
           )}
         </div>
-        <div className="font-bold text-white drop-shadow-sm">{friend.display_name || friend.username}</div>
+        <div className="font-bold text-white drop-shadow-sm truncate">{friend.display_name || friend.username}</div>
       </div>
 
       {/* Messages */}

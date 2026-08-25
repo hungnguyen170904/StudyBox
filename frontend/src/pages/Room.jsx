@@ -4,7 +4,7 @@ import { useRoomStore } from '../store/roomStore';
 import { useChatStore } from '../store/chatStore';
 import {
   Hash, Volume2, Music, ArrowLeft, UserPlus,
-  PenTool, FileText, Settings, CheckSquare, Plus, ChevronDown
+  PenTool, FileText, Settings, CheckSquare, Plus, ChevronDown, Menu
 } from 'lucide-react';
 import MessageList from '../components/Chat/MessageList';
 import MessageInput from '../components/Chat/MessageInput';
@@ -61,6 +61,7 @@ export default function Room() {
   const [isTasksOpen, setIsTasksOpen] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchRoomDetails(id);
@@ -115,10 +116,23 @@ export default function Room() {
   };
 
   return (
-    <div className="h-screen bg-transparent flex overflow-hidden">
+    <div className="h-screen bg-transparent flex overflow-hidden relative">
+
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Sidebar kênh ──────────────────────────────────────────── */}
-      <div className="w-60 flex flex-col shrink-0 bg-black/50 backdrop-blur-xl border-r border-white/[0.06]">
+      <div className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 w-60 flex flex-col shrink-0 bg-black/80 md:bg-black/50 backdrop-blur-xl border-r border-white/[0.06] shadow-2xl md:shadow-none ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
         {/* Room header */}
         <div
@@ -181,7 +195,7 @@ export default function Room() {
                         return (
                           <div key={channel.id} className="group/ch flex items-center pl-1">
                             <button
-                              onClick={() => setActiveChannel(channel)}
+                              onClick={() => { setActiveChannel(channel); setIsMobileMenuOpen(false); }}
                               className={`relative flex-1 flex items-center gap-2 pl-2 pr-2 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
                                 isActive
                                   ? `${meta.bg} ${meta.color} channel-active`
@@ -219,10 +233,13 @@ export default function Room() {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}
-        <div className="h-14 border-b border-white/[0.06] flex items-center justify-between px-5 shrink-0 bg-black/20 backdrop-blur-sm">
+        <div className="h-14 border-b border-white/[0.06] flex items-center justify-between px-3 md:px-5 shrink-0 bg-black/20 backdrop-blur-sm">
           {/* Left: breadcrumb */}
           <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${activeChannel ? (CHANNEL_META[activeChannel.type]?.bg || 'bg-white/10') : 'bg-white/10'}`}>
+            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors mr-1">
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${activeChannel ? (CHANNEL_META[activeChannel.type]?.bg || 'bg-white/10') : 'bg-white/10'} hidden sm:flex`}>
               <ChannelIcon type={activeChannel?.type || 'text'} className="w-4 h-4" />
             </div>
             <div className="min-w-0">
@@ -237,22 +254,22 @@ export default function Room() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setIsTasksOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200 hover:bg-violet-500/15 px-3 py-1.5 rounded-lg transition-all border border-violet-500/20"
+              className="flex items-center gap-1.5 text-xs font-semibold text-violet-300 hover:text-violet-200 hover:bg-violet-500/15 px-2 md:px-3 py-1.5 rounded-lg transition-all border border-violet-500/20"
               title="Kanban Tasks"
             >
-              <CheckSquare className="w-3.5 h-3.5" />
-              Tasks
+              <CheckSquare className="w-4 h-4 md:w-3.5 md:h-3.5" />
+              <span className="hidden sm:inline">Tasks</span>
             </button>
 
             {isOwner && (
               <>
                 <button
                   onClick={() => setIsInviteOpen(true)}
-                  className="flex items-center gap-1.5 text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-all"
+                  className="flex items-center gap-1.5 text-xs font-medium text-white/60 hover:text-white hover:bg-white/10 px-2 md:px-3 py-1.5 rounded-lg transition-all"
                   title="Mời thành viên"
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  Mời
+                  <UserPlus className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                  <span className="hidden sm:inline">Mời</span>
                 </button>
                 <button
                   onClick={() => setIsSettingsOpen(true)}

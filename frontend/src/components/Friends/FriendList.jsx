@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useFriendStore } from '../../store/friendStore';
 import { useAuthStore } from '../../store/authStore';
-import { User, Check, X, UserPlus, Clock } from 'lucide-react';
+import { User, Check, X, UserPlus, Clock, Menu } from 'lucide-react';
 
-export default function FriendList({ onStartDm }) {
+export default function FriendList({ onStartDm, onOpenMenu }) {
   const { friends, pending, sent, fetchFriends, sendRequest, respondRequest, isLoading } = useFriendStore();
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'pending', 'add'
   const [usernameInput, setUsernameInput] = useState('');
@@ -111,10 +111,13 @@ export default function FriendList({ onStartDm }) {
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent">
       {/* Top Navigation */}
-      <div className="h-14 border-b border-white/10 flex items-center px-4 gap-6 shrink-0 shadow-sm backdrop-blur-sm bg-black/10">
-        <div className="flex items-center gap-2 text-white font-semibold border-r border-white/20 pr-6">
-          <User className="w-5 h-5 text-white/70" />
-          Bạn bè
+      <div className="h-14 border-b border-white/10 flex items-center px-4 gap-4 md:gap-6 shrink-0 shadow-sm backdrop-blur-sm bg-black/10">
+        <div className="flex items-center gap-2 text-white font-semibold border-r border-white/20 pr-4 md:pr-6">
+          <button onClick={onOpenMenu} className="md:hidden p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors mr-1">
+            <Menu className="w-5 h-5" />
+          </button>
+          <User className="w-5 h-5 text-white/70 hidden sm:block" />
+          <span className="hidden sm:inline">Bạn bè</span>
         </div>
         <div className="flex items-center gap-4">
           <button 

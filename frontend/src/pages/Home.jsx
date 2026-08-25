@@ -4,13 +4,13 @@ import { useAuthStore } from '../store/authStore';
 import { useRoomStore } from '../store/roomStore';
 import { useFriendStore } from '../store/friendStore';
 import { useChatStore } from '../store/chatStore';
-import { LogOut, Plus, Users, Compass, User, BookOpen, Hash, Bell, Search, Lock } from 'lucide-react';
+import { LogOut, Plus, Users, Compass, User, BookOpen, Hash, Bell, Search, Lock, Menu } from 'lucide-react';
 import FriendList from '../components/Friends/FriendList';
 import DirectMessage from '../components/Friends/DirectMessage';
 import ProfileSettings from '../components/ProfileSettings';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 import { useNotificationStore } from '../store/notificationStore';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
   const { user, logout } = useAuthStore();
@@ -27,6 +27,7 @@ export default function Home() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { fetchNotifications, unreadCount } = useNotificationStore();
 
@@ -60,10 +61,23 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen bg-transparent flex overflow-hidden text-textMain">
+    <div className="h-screen bg-transparent flex overflow-hidden text-textMain relative">
+
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
+          />
+        )}
+      </AnimatePresence>
 
       {/* ─── Sidebar trái ─────────────────────────────────────────────── */}
-      <div className="w-60 glass-sidebar flex flex-col shrink-0">
+      <div className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 w-60 glass-sidebar flex flex-col shrink-0 shadow-2xl md:shadow-none ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
         {/* Search trigger */}
         <div className="h-14 flex items-center justify-center border-b border-white/10 shadow-sm px-3">
@@ -80,7 +94,7 @@ export default function Home() {
         {/* Nav items */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
           <button
-            onClick={() => setActiveTab('friends')}
+            onClick={() => { setActiveTab('friends'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${activeTab === 'friends' ? 'bg-surfaceLight/70 text-white' : 'text-textMuted hover:bg-surfaceLight/30 hover:text-white'}`}
           >
             <Users className="w-5 h-5" />
@@ -88,7 +102,7 @@ export default function Home() {
           </button>
 
           <button
-            onClick={() => setActiveTab('rooms')}
+            onClick={() => { setActiveTab('rooms'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${activeTab === 'rooms' ? 'bg-surfaceLight/70 text-white' : 'text-textMuted hover:bg-surfaceLight/30 hover:text-white'}`}
           >
             <Compass className="w-5 h-5" />
@@ -105,7 +119,7 @@ export default function Home() {
             {friends.map(friend => (
               <button
                 key={friend.friendship_id}
-                onClick={() => handleStartDm(friend)}
+                onClick={() => { handleStartDm(friend); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${activeTab === 'dm_' + (friend.id || friend.friendship_id) ? 'bg-surfaceLight/70 text-white' : 'text-textMuted hover:bg-surfaceLight/30 hover:text-white'}`}
               >
                 <div className="relative w-8 h-8 rounded-full bg-surfaceLight flex items-center justify-center shrink-0 overflow-hidden">
@@ -174,17 +188,21 @@ export default function Home() {
       <div className="flex-1 flex flex-col bg-transparent min-w-0">
 
         {activeTab === 'friends' && (
-          <FriendList onStartDm={handleStartDm} />
+          <FriendList onStartDm={handleStartDm} onOpenMenu={() => setIsMobileMenuOpen(true)} />
         )}
 
         {activeTab.startsWith('dm_') && (
-          <DirectMessage friend={activeDmUser} />
+          <DirectMessage friend={activeDmUser} onOpenMenu={() => setIsMobileMenuOpen(true)} />
         )}
 
         {activeTab === 'rooms' && (
           <div className="flex-1 overflow-y-auto">
-            <header className="border-b border-surfaceLight/30 h-14 flex items-center px-6 shadow-sm shrink-0 font-semibold text-textMain gap-2">
-              <Compass className="w-5 h-5 text-textMuted" /> Khám phá phòng học
+            <header className="border-b border-surfaceLight/30 h-14 flex items-center px-4 md:px-6 shadow-sm shrink-0 font-semibold text-textMain gap-3">
+              <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors">
+                <Menu className="w-5 h-5" />
+              </button>
+              <Compass className="w-5 h-5 text-textMuted hidden md:block" /> 
+              <span>Khám phá phòng học</span>
             </header>
 
             <div className="p-6 max-w-5xl mx-auto flex flex-col gap-8">

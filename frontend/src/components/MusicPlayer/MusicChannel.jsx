@@ -63,7 +63,7 @@ export default function MusicChannel({ channelId }) {
   /* ───── Callback: Bài hát kết thúc ───── */
   const handleTrackEnded = useCallback(() => {
     if (!isOwner || !socket) return;
-    console.log('[Music] Track ended, requesting next...');
+    // console.log('[Music] Track ended, requesting next...');
     trackEnded(socket, channelId);
   }, [isOwner, socket, channelId, trackEnded]);
 

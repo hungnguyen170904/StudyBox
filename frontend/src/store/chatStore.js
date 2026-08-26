@@ -65,7 +65,7 @@ export const useChatStore = create((set, get) => ({
         if (currentUser && message.user_id !== currentUser.id) {
           const audio = new Audio('/sounds/ting.ogg');
           audio.volume = 0.5;
-          audio.play().catch(err => console.log('Autoplay prevented:', err));
+          audio.play().catch(err => {/* Ignore */});
         }
       });
 
@@ -77,7 +77,7 @@ export const useChatStore = create((set, get) => ({
         // Phát âm thanh
         const audio = new Audio('/sounds/ting.ogg');
         audio.volume = 0.5;
-        audio.play().catch(err => console.log('Autoplay prevented:', err));
+        audio.play().catch(err => {/* Ignore */});
       });
 
       socket.on('message_reaction_update', (data) => {

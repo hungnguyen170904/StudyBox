@@ -32,7 +32,7 @@ export const useVoiceStore = create((set, get) => ({
       });
 
       socket.on('voice:user_joined', async (userInfo) => {
-        console.log('[WebRTC] User joined, preparing offer for:', userInfo.username);
+        // console.log('[WebRTC] User joined, preparing offer for:', userInfo.username);
         const pc = get().createPeerConnection(socket, userInfo.socketId, userInfo.id, userInfo.username);
         get().localStream.getTracks().forEach(track => pc.addTrack(track, get().localStream));
       });
@@ -42,7 +42,7 @@ export const useVoiceStore = create((set, get) => ({
         let pc = get().peers[fromSocketId]?.peerConnection;
 
         if (!pc && signalData.type === 'offer') {
-          console.log('[WebRTC] Received offer, creating PC for:', fromUsername);
+          // console.log('[WebRTC] Received offer, creating PC for:', fromUsername);
           pc = get().createPeerConnection(socket, fromSocketId, fromUserId, fromUsername);
           get().localStream.getTracks().forEach(track => pc.addTrack(track, get().localStream));
         }

@@ -59,5 +59,14 @@ module.exports = (io, socket) => {
       socket.voiceChannelId = null;
     }
   });
+
+  socket.on('voice:mute_change', (data) => {
+    if (socket.voiceChannelId && socket.voiceChannelId === data.channelId) {
+      socket.to(`voice_${socket.voiceChannelId}`).emit('voice:mute_changed', { 
+        userId: socket.user.id, 
+        isMuted: data.isMuted 
+      });
+    }
+  });
 };
 

@@ -13,6 +13,7 @@ export const useVoiceStore = create((set, get) => ({
   isMuted: false,
   isVideoOn: false,
   isScreenSharing: false,
+  peerMuteStates: {}, // { userId: isMuted }
   peers: {}, // { socketId: { peerConnection, stream, userId, username } }
   
   isConnected: false,
@@ -28,7 +29,8 @@ export const useVoiceStore = create((set, get) => ({
         currentChannelId: channelId,
         isMuted: false,
         isVideoOn: false,
-        isScreenSharing: false
+        isScreenSharing: false,
+        peerMuteStates: {}
       });
 
       socket.on('voice:user_joined', async (userInfo) => {
@@ -72,6 +74,15 @@ export const useVoiceStore = create((set, get) => ({
         get().removePeer(data.userId);
       });
 
+      socket.on('voice:mute_changed', ({ userId, isMuted }) => {
+        set(state => ({
+          peerMuteStates: {
+            ...state.peerMuteStates,
+            [userId]: isMuted
+          }
+        }));
+      });
+
       socket.emit('voice:join', channelId);
 
     } catch (err) {
@@ -95,11 +106,13 @@ export const useVoiceStore = create((set, get) => ({
       socket.off('voice:user_joined');
       socket.off('voice:signal');
       socket.off('voice:user_left');
+      socket.off('voice:mute_changed');
     }
 
     set({ 
       localStream: null, 
       peers: {}, 
+      peerMuteStates: {},
       isConnected: false, 
       currentChannelId: null,
       isVideoOn: false,
@@ -177,18 +190,24 @@ export const useVoiceStore = create((set, get) => ({
     }
     if (socketIdToRemove) {
       delete newPeers[socketIdToRemove];
-      set({ peers: newPeers });
+      const newMuteStates = { ...get().peerMuteStates };
+      delete newMuteStates[userId];
+      set({ peers: newPeers, peerMuteStates: newMuteStates });
     }
   },
 
   // 4. Các hành động Media
-  toggleMute: () => {
-    const { localStream, isMuted } = get();
+  toggleMute: (socket) => {
+    const { localStream, isMuted, currentChannelId } = get();
     if (localStream) {
       localStream.getAudioTracks().forEach(track => {
         track.enabled = isMuted;
       });
-      set({ isMuted: !isMuted });
+      const newMutedState = !isMuted;
+      set({ isMuted: newMutedState });
+      if (socket && currentChannelId) {
+        socket.emit('voice:mute_change', { channelId: currentChannelId, isMuted: newMutedState });
+      }
     }
   },
 

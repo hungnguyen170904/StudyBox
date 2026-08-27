@@ -112,7 +112,7 @@ export default function VoiceChannel({ channelId }) {
   const socket = getSocket();
   
   const { 
-    isConnected, localStream, peers, 
+    isConnected, localStream, peers, peerMuteStates,
     isMuted, isVideoOn, isScreenSharing,
     joinVoiceChannel, leaveVoiceChannel, 
     toggleMute, toggleVideo, toggleScreenShare
@@ -170,7 +170,7 @@ export default function VoiceChannel({ channelId }) {
               stream={peer.stream}
               username={peer.username}
               isLocal={false}
-              isMuted={false} // Todo: Đồng bộ trạng thái mute qua Socket sau
+              isMuted={!!peerMuteStates[peer.userId]}
             />
           ))}
 
@@ -184,7 +184,7 @@ export default function VoiceChannel({ channelId }) {
         <motion.button 
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
-          onClick={toggleMute}
+          onClick={() => toggleMute(socket)}
           className={`flex items-center justify-center w-14 h-14 rounded-2xl transition-all shadow-lg backdrop-blur-sm border ${
             isMuted ? 'bg-red-500/80 hover:bg-red-500 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-white/10 hover:bg-white/20 border-white/20'
           }`}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoomStore } from '../store/roomStore';
 import { useChatStore } from '../store/chatStore';
@@ -8,16 +8,18 @@ import {
 } from 'lucide-react';
 import MessageList from '../components/Chat/MessageList';
 import MessageInput from '../components/Chat/MessageInput';
-import MusicChannel from '../components/MusicPlayer/MusicChannel';
-import VoiceChannel from '../components/VoiceChannel/VoiceChannel';
 import RoomMembers from '../components/Room/RoomMembers';
 import InviteModal from '../components/Room/InviteModal';
 import RoomSettingsModal from '../components/Room/RoomSettingsModal';
 import CreateChannelModal from '../components/Room/CreateChannelModal';
 import RoomTasksModal from '../components/Room/RoomTasksModal';
-import Whiteboard from '../components/Whiteboard/Whiteboard';
-import DocumentChannel from '../components/DocumentChannel/DocumentChannel';
 import PomodoroTimer from '../components/Room/PomodoroTimer';
+
+// Lazy-loaded components for better performance
+const MusicChannel = lazy(() => import('../components/MusicPlayer/MusicChannel'));
+const VoiceChannel = lazy(() => import('../components/VoiceChannel/VoiceChannel'));
+const Whiteboard = lazy(() => import('../components/Whiteboard/Whiteboard'));
+const DocumentChannel = lazy(() => import('../components/DocumentChannel/DocumentChannel'));
 import { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -295,18 +297,26 @@ export default function Room() {
                   onCancelReply={() => setReplyTo(null)}
                 />
               </div>
-            ) : activeChannel?.type === 'music' ? (
-              <MusicChannel channelId={activeChannel.id} />
-            ) : activeChannel?.type === 'voice' ? (
-              <VoiceChannel channelId={activeChannel.id} />
-            ) : activeChannel?.type === 'whiteboard' ? (
-              <Whiteboard channelId={activeChannel.id} />
-            ) : activeChannel?.type === 'document' ? (
-              <DocumentChannel channelId={activeChannel.id} roomId={id} />
             ) : (
-              <div className="flex-1 flex items-center justify-center text-white/30 text-sm">
-                Kênh chưa được hỗ trợ.
-              </div>
+              <Suspense fallback={
+                <div className="flex-1 flex items-center justify-center text-white/50">
+                  <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+                </div>
+              }>
+                {activeChannel?.type === 'music' ? (
+                  <MusicChannel channelId={activeChannel.id} />
+                ) : activeChannel?.type === 'voice' ? (
+                  <VoiceChannel channelId={activeChannel.id} />
+                ) : activeChannel?.type === 'whiteboard' ? (
+                  <Whiteboard channelId={activeChannel.id} />
+                ) : activeChannel?.type === 'document' ? (
+                  <DocumentChannel channelId={activeChannel.id} roomId={id} />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-white/30 text-sm">
+                    Kênh chưa được hỗ trợ.
+                  </div>
+                )}
+              </Suspense>
             )}
           </div>
 

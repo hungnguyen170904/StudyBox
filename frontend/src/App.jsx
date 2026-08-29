@@ -15,6 +15,7 @@ const Register = lazy(() => import('./pages/Register'));
 const Home = lazy(() => import('./pages/Home'));
 const Room = lazy(() => import('./pages/Room'));
 const Invite = lazy(() => import('./pages/Invite'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Fallback Loader
 const PageLoader = () => (
@@ -84,6 +85,9 @@ function App() {
             <Route path="/room/:id" element={<Room />} />
             <Route path="/invite/:code" element={<Invite />} />
           </Route>
+          
+          {/* 404 Catch-all */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </BackgroundSlider>

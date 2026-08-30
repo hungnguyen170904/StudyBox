@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { X, Camera, Save } from 'lucide-react';
+import { X, Camera, Save, LogOut } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function ProfileSettings({ isOpen, onClose }) {
-  const { user, updateProfile } = useAuthStore();
+  const { user, updateProfile, logout } = useAuthStore();
   const [username, setUsername] = useState(user?.username || '');
   const [displayName, setDisplayName] = useState(user?.display_name || user?.username || '');
   const [customStatus, setCustomStatus] = useState(user?.custom_status || '');
@@ -20,9 +20,19 @@ export default function ProfileSettings({ isOpen, onClose }) {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
+      if (selectedFile.size > 2 * 1024 * 1024) {
+        setMessage('Kích thước ảnh vượt quá 2MB!');
+        return;
+      }
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
+      setMessage('');
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    onClose();
   };
 
   const handleSubmit = async (e) => {
@@ -177,7 +187,15 @@ export default function ProfileSettings({ isOpen, onClose }) {
                   </motion.div>
                 )}
 
-                <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-white/10">
+                <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-white/10 items-center">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="mr-auto flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Đăng xuất
+                  </button>
                   <button 
                     type="button" 
                     onClick={onClose}

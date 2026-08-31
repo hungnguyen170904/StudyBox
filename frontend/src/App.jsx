@@ -17,10 +17,16 @@ const Room = lazy(() => import('./pages/Room'));
 const Invite = lazy(() => import('./pages/Invite'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-// Fallback Loader
+// Premium Fallback Loader
 const PageLoader = () => (
-  <div className="min-h-screen bg-transparent flex items-center justify-center">
-    <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+  <div className="min-h-screen bg-[#0B0F19] flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="absolute w-64 h-64 bg-primary/20 blur-[100px] rounded-full animate-pulse pointer-events-none"></div>
+    <img src="/Logo.png" alt="StudyBox" className="w-20 h-20 mb-6 animate-pulse drop-shadow-[0_0_20px_rgba(139,92,246,0.4)] relative z-10" />
+    <div className="flex items-center gap-2 relative z-10">
+      <div className="w-2.5 h-2.5 rounded-full bg-primary/80 animate-bounce" style={{ animationDelay: '0s' }}></div>
+      <div className="w-2.5 h-2.5 rounded-full bg-primary/80 animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+      <div className="w-2.5 h-2.5 rounded-full bg-primary/80 animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+    </div>
   </div>
 );
 

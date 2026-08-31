@@ -299,8 +299,14 @@ export default function Room() {
               </div>
             ) : (
               <Suspense fallback={
-                <div className="flex-1 flex items-center justify-center text-white/50">
-                  <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+                <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden bg-transparent">
+                  <div className="absolute w-64 h-64 bg-primary/5 blur-[80px] rounded-full animate-pulse pointer-events-none"></div>
+                  <div className="flex items-center gap-2 relative z-10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: '0s' }}></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+                  </div>
+                  <p className="mt-4 text-xs font-medium text-white/40 tracking-wider uppercase animate-pulse">Đang tải...</p>
                 </div>
               }>
                 {activeChannel?.type === 'music' ? (

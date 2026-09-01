@@ -131,6 +131,7 @@ export default function Register() {
                 <input
                   type="password"
                   required
+                  minLength={6}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Tối thiểu 6 ký tự"

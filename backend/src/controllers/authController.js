@@ -10,6 +10,10 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Vui lòng nhập đủ thông tin.' });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự.' });
+    }
+
     // Kiểm tra user tồn tại chưa
     const userExists = await db.query('SELECT id FROM users WHERE email = $1 OR username = $2', [email, username]);
     if (userExists.rows.length > 0) {

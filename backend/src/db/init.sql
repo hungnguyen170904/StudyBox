@@ -136,3 +136,7 @@ CREATE TABLE IF NOT EXISTS channel_documents (
   file_size INTEGER NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Performance Indices
+CREATE INDEX IF NOT EXISTS idx_messages_channel_id_created_at ON messages(channel_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_room_members_user_id ON room_members(user_id);

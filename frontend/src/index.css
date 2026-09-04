@@ -6,6 +6,10 @@
     @apply text-textMain antialiased min-h-screen font-sans;
     background-color: #0B0F19; /* Updated Fallback color */
   }
+
+  ::selection {
+    @apply bg-primary/40 text-white;
+  }
 }
 
 @layer components {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
-import { FileText, Download, Reply, SmilePlus } from 'lucide-react';
+import { FileText, Download, Reply, SmilePlus, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -73,6 +73,7 @@ export default function MessageList({ channelId, onReply }) {
   const containerRef    = useRef(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(null); // msgId
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   useEffect(() => {
     if (channelId) fetchMessages(channelId);
@@ -82,14 +83,23 @@ export default function MessageList({ channelId, onReply }) {
     if (!containerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     const nearBottom = scrollHeight - scrollTop - clientHeight < 200;
-    if (nearBottom || messages.length <= 50)
+    if (nearBottom || messages.length <= 50) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // Nếu có tin nhắn mới mà đang không ở dưới cùng, hiện nút
+      setShowScrollButton(true);
+    }
   }, [messages]);
 
   const handleScroll = () => {
     if (!containerRef.current) return;
-    if (containerRef.current.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
-      const prev = containerRef.current.scrollHeight;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    
+    // Nút cuộn xuống: Hiện nếu cách đáy > 300px
+    setShowScrollButton(scrollHeight - scrollTop - clientHeight > 300);
+
+    if (scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
+      const prev = scrollHeight;
       loadMoreMessages(channelId).then(() => {
         setTimeout(() => {
           if (containerRef.current) {
@@ -98,6 +108,10 @@ export default function MessageList({ channelId, onReply }) {
         }, 0);
       });
     }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const channelMessages = messages.filter(m => m.channel_id === channelId);
@@ -375,6 +389,26 @@ export default function MessageList({ channelId, onReply }) {
                 ? `${typingUsers[channelId][0]} đang gõ...`
                 : `${typingUsers[channelId].join(', ')} đang gõ...`}
             </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Nút cuộn xuống */}
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            className="sticky bottom-2 float-right mr-2 z-50 pointer-events-none flex justify-end"
+          >
+            <button
+              onClick={scrollToBottom}
+              className="pointer-events-auto bg-primary/90 hover:bg-primary text-white rounded-full p-2.5 shadow-[0_0_20px_rgba(139,92,246,0.6)] transition-all flex items-center justify-center border border-white/20 backdrop-blur-md animate-bounce"
+              title="Cuộn xuống dưới"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
